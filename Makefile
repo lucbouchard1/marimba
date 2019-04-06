@@ -10,6 +10,7 @@ GRUB_CFG=grub.cfg
 all: install_kernel
 
 $(IMG_FILENAME):
+	./scripts/create_img_file.sh $(IMG_FILENAME) $(MAIN_FS_DIR)
 	sudo ./scripts/install_grub.sh $(IMG_FILENAME) $(MAIN_FS_DIR)
 
 $(KERNEL_FILENAME): $(ASM_OBJ)
