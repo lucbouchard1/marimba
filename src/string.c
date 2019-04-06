@@ -2,10 +2,10 @@
 
 void *mmemset(void *dest, int c, size_t n)
 {
-   char *idest = dest;
+   char *cur = dest, *end = ((char *)dest + n);
 
-   while ((idest - (char *)dest) < n)
-      *(idest++) = (char)c;
+   while (cur != end)
+      *(cur++) = (char)c;
 
    return dest;
 }
