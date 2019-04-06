@@ -1,0 +1,4 @@
+set arch i386:x86-64:intel
+symbol-file build/kernel.bin
+b start
+target remote localhost:1234

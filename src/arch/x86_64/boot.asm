@@ -10,6 +10,9 @@ start:
    call check_cpuid
    call check_long_mode
 
+   call set_up_page_tables
+   call enable_paging
+
    ; print `OK` to the screen
    mov dword [0xb8000], 0x2f4b2f4f 
    hlt
@@ -75,6 +78,56 @@ check_long_mode:
    mov al, "2"
    jmp error
 
+set_up_page_tables:
+   ; map first P4 entry to P3 table
+   mov eax, p3_table
+   or eax, 0b11           ; present in memory + writable
+   mov [p4_table], eax
+
+   ; map first P3 entry to P2 table
+   mov eax, p2_table
+   or eax, 0b11           ; present in memory + writable
+   mov [p3_table], eax
+
+   ; map each P2 entry to a huge 2MiB page
+   mov ecx, 0             ; counter variable
+
+.map_p2_table:
+   ; map nth P2 entry (n stored in ecx) to a huge page that starts at 2MiB*n
+   mov eax, 0x200000      ; 2 MiB
+   mul ecx                ; start address of the nth page stored in eax
+   or eax, 0b10000011     ; present in memory + writable + huge
+   mov [p2_table + ecx*8], eax ; map nth entry
+
+   inc ecx                ; increment counter
+   cmp ecx, 512           ; check if we've covered the entire P2 table
+   jne .map_p2_table
+   nop
+   ret
+
+enable_paging:
+   ; load P4 to cr3 register (cpu uses this to access the P4 table)
+   mov eax, p4_table
+   mov cr3, eax
+
+   ; enable PAE-flag in cr4 (Physical Address Extension)
+   mov eax, cr4
+   or eax, 1 << 5
+   mov cr4, eax
+
+   ; set the long mode bit in the EFER MSR (model specific register)
+   mov ecx, 0xC0000080
+   rdmsr
+   or eax, 1 << 8
+   wrmsr
+
+   ; enable paging in the cr0 register
+   mov eax, cr0
+   or eax, 1 << 31
+   mov cr0, eax
+
+   ret
+
 ; Prints `ERR: ` to the screen with an error code and hangs
 error:
    mov dword [0xb8000], 0x4f524f45
@@ -84,6 +137,16 @@ error:
    hlt
 
 section .bss
+; Reserve bytes for an identity page table
+align 4096
+p4_table:
+   resb 4096
+p3_table:
+   resb 4096
+p2_table:
+   resb 4096
+
+; Reserve bytes for a small stack
 stack_bottom:
    resb 64
 stack_top:

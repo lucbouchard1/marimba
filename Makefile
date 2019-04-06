@@ -17,20 +17,25 @@ $(MARIMBA_BOOTABLE_IMG): $(MARIMBA_BASE_FS)
 	@./scripts/create_img_file.sh $(MARIMBA_BOOTABLE_IMG) $(MARIMBA_BASE_FS)
 	@sudo ./scripts/install_kernel.sh $(MARIMBA_BOOTABLE_IMG) $(MARIMBA_BASE_FS)
 
-$(KERNEL_FILENAME): $(ASM_OBJ)
-	x86_64-elf-ld -n -o $(KERNEL_FILENAME) -T $(LINKER_SCRIPT) $^
-
 $(MARIMBA_BASE_FS): $(KERNEL_FILENAME) $(GRUB_CFG)
 	@mkdir -p $(MARIMBA_BASE_FS)/boot/grub
+	@touch $(MARIMBA_BASE_FS)
 	@cp $(GRUB_CFG) $(MARIMBA_BASE_FS)/boot/grub
 	@cp $(KERNEL_FILENAME) $(MARIMBA_BASE_FS)/boot
+
+$(KERNEL_FILENAME): $(ASM_OBJ)
+	x86_64-elf-ld -n -o $(KERNEL_FILENAME) -T $(LINKER_SCRIPT) $^
 
 run: all
 	qemu-system-x86_64 -s -drive format=raw,file=$(MARIMBA_BOOTABLE_IMG) -serial stdio
 
+debug: all
+	qemu-system-x86_64 -s -drive format=raw,file=$(MARIMBA_BOOTABLE_IMG) -serial stdio &
+	gdb -x scripts/gdbinit
+
 build/arch/$(ARCH)/%.o: src/arch/$(ARCH)/%.asm
 	@mkdir -p $(shell dirname $@)
-	nasm -f elf64 -o $@ $<
+	nasm -g -f elf64 -o $@ $<
 
 clean:
 	rm -fr build $(KERNEL_FILENAME) $(MARIMBA_BASE_FS) $(MARIMBA_BOOTABLE_IMG)
