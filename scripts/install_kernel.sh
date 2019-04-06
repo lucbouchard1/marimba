@@ -26,7 +26,7 @@ LOOP_DEV_MAIN=$(losetup -f) || cleanup -1
 losetup $LOOP_DEV_MAIN $FS_FILENAME -o $FS_MAIN_PARTITION_START_ADDR || cleanup -1
 mkdosfs -F32 -f 2 $LOOP_DEV_MAIN || cleanup -1
 mount $LOOP_DEV_MAIN $FS_MAIN_MOUNT_POINT
-cp -r img/* $FS_MAIN_MOUNT_POINT || cleanup -1
+cp -r ${FS_MAIN_DIR}/* $FS_MAIN_MOUNT_POINT || cleanup -1
 
 # Install grub
 LOOP_DEV_BOOT=$(losetup -f) || cleanup -1
