@@ -2,8 +2,6 @@ ARCH ?= x86_64
 MARIMBA_BOOTABLE_IMG = marimba.img
 MARIMBA_BASE_FS = build/img
 KERNEL_FILENAME = build/kernel.bin
-ASM_SRC = multiboot_header.asm boot.asm
-ASM_OBJ = $(ASM_SRC:.asm=.o)
 
 LINKER_SCRIPT := src/arch/$(ARCH)/linker.ld
 GRUB_CFG := src/arch/$(ARCH)/grub.cfg
