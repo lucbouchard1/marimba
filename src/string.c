@@ -30,3 +30,15 @@ size_t strlen(const char *s)
 
    return count;
 }
+
+char *strcpy(char *dest, const char *src)
+{
+   char *dcur = dest;
+   const char *scur = src;
+
+   do {
+      *(dcur++) = *(scur++);
+   } while (*scur);
+
+   return dest;
+}
