@@ -1,6 +1,6 @@
 #include "string.h"
 
-void *mmemset(void *dest, int c, size_t n)
+void *memset(void *dest, int c, size_t n)
 {
    char *cur = dest, *end = ((char *)dest + n);
 
@@ -10,7 +10,7 @@ void *mmemset(void *dest, int c, size_t n)
    return dest;
 }
 
-void *mmemcpy(void *dest, const void *src, size_t n)
+void *memcpy(void *dest, const void *src, size_t n)
 {
    char *dcur = dest, *end = ((char *)dest + n);
    const char *scur = src;
@@ -19,4 +19,14 @@ void *mmemcpy(void *dest, const void *src, size_t n)
       *(dcur++) = *(scur++);
 
    return dest;
+}
+
+size_t strlen(const char *s)
+{
+   const char *cur;
+   size_t count = 0;
+
+   for (cur = s; *cur; cur++) count++;
+
+   return count;
 }
