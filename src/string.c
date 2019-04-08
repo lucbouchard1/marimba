@@ -9,3 +9,14 @@ void *mmemset(void *dest, int c, size_t n)
 
    return dest;
 }
+
+void *mmemcpy(void *dest, const void *src, size_t n)
+{
+   char *dcur = dest, *end = ((char *)dest + n);
+   const char *scur = src;
+
+   while (dcur != end)
+      *(dcur++) = *(scur++);
+
+   return dest;
+}

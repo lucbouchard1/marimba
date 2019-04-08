@@ -1,4 +1,5 @@
 #include <string.h>
+#include <stdio.h>
 
 #include "CuTest.h"
 #include "../src/string.h"
@@ -26,9 +27,23 @@ void Test_mmemset(CuTest *tc)
    CuAssertTrue(tc, !memcmp(input, actual, 128));
 }
 
+void Test_mmemcpy(CuTest *tc)
+{
+   char *actual = "This is a test string";
+   char input[22];
+
+   mmemcpy(input, actual, 22);
+   CuAssertTrue(tc, !memcmp(input, actual, 22));
+
+   memset(input, 0, 22);
+   mmemcpy(input, actual, 15);
+   CuAssertTrue(tc, !memcmp(input, actual, 15));
+}
+
 CuSuite *StringGetSuite()
 {
    CuSuite *suite = CuSuiteNew();
    SUITE_ADD_TEST(suite, Test_mmemset);
+   SUITE_ADD_TEST(suite, Test_mmemcpy);
    return suite;
 }
