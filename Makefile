@@ -3,6 +3,8 @@ MARIMBA_BOOTABLE_IMG = marimba.img
 MARIMBA_BASE_FS = build/img
 KERNEL_FILENAME = build/kernel.bin
 
+TARGET_CC = x86_64-elf-gcc
+TARGET_LD = x86_64-elf-ld
 CFLAGS += -g -Wall -Werror -pedantic
 
 LINKER_SCRIPT := src/arch/$(ARCH)/linker.ld
@@ -14,7 +16,8 @@ ASM_OBJ := $(patsubst src/arch/$(ARCH)/%.asm, \
 	build/arch/$(ARCH)/%.o, $(ASM_SRC))
 
 TESTS_C_SRC := $(wildcard tests/*.c)
-TESTS_C_OBJ := $(patsubst tests/%.c, tests/%.o, $(TESTS_C_SRC))
+TESTS_C_OBJ := $(patsubst tests/%.c, tests/%.o, $(TESTS_C_SRC)) \
+		$(patsubst src/%.c, tests/%.o, $(C_SRC))
 TESTS_EXECUTABLE = run_tests
 
 .PHONY: run clean test
@@ -32,9 +35,9 @@ $(MARIMBA_BASE_FS): $(KERNEL_FILENAME) $(GRUB_CFG)
 	@cp $(KERNEL_FILENAME) $(MARIMBA_BASE_FS)/boot
 
 $(KERNEL_FILENAME): $(ASM_OBJ) $(C_OBJ)
-	x86_64-elf-ld -n -o $(KERNEL_FILENAME) -T $(LINKER_SCRIPT) $^
+	$(TARGET_LD) -n -o $(KERNEL_FILENAME) -T $(LINKER_SCRIPT) $^
 
-$(TESTS_EXECUTABLE): $(TESTS_C_OBJ) $(C_OBJ)
+$(TESTS_EXECUTABLE): $(TESTS_C_OBJ)
 	$(CC) $(CFLAGS) $^ -o $(TESTS_EXECUTABLE)
 
 test: $(TESTS_EXECUTABLE)
@@ -52,6 +55,10 @@ build/arch/$(ARCH)/%.o: src/arch/$(ARCH)/%.asm
 	nasm -g -f elf64 -o $@ $<
 
 build/%.o: src/%.c
+	@mkdir -p $(shell dirname $@)
+	$(TARGET_CC) $(CFLAGS) -c -o $@ $<
+
+tests/%.o: src/%.c
 	@mkdir -p $(shell dirname $@)
 	$(CC) $(CFLAGS) -c -o $@ $<
 
