@@ -5,7 +5,7 @@ KERNEL_FILENAME = build/kernel.bin
 
 TARGET_CC = x86_64-elf-gcc
 TARGET_LD = x86_64-elf-ld
-CFLAGS += -g -Wall -Werror -pedantic -ffreestanding
+CFLAGS += -g -Wall -Werror -pedantic
 
 LINKER_SCRIPT := src/arch/$(ARCH)/linker.ld
 GRUB_CFG := src/arch/$(ARCH)/grub.cfg
@@ -56,7 +56,7 @@ build/arch/$(ARCH)/%.o: src/arch/$(ARCH)/%.asm
 
 build/%.o: src/%.c
 	@mkdir -p $(shell dirname $@)
-	$(TARGET_CC) $(CFLAGS) -c -o $@ $<
+	$(TARGET_CC) $(CFLAGS) -mno-red-zone -ffreestanding -c -o $@ $<
 
 tests/%.o: src/%.c
 	@mkdir -p $(shell dirname $@)
