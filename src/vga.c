@@ -1,3 +1,5 @@
+#include <stdint.h>
+
 #include "vga.h"
 #include "string.h"
 
@@ -10,7 +12,7 @@ struct VGATextBuffer {
    unsigned int char_bytes;       /* Bytes allocated in buffer to each char */
    unsigned int x;                /* Horizontal position of cursor */
    unsigned int y;                /* Vertical position of cursor */
-   unsigned short *buf;           /* Memory address of text buffer */
+   uint16_t *buf;                 /* Memory address of text buffer */
 };
 
 static struct VGATextBuffer disp = {
