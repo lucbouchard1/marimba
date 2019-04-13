@@ -4,6 +4,24 @@
 #include "printk.h"
 #include "vga.h"
 
+#define HANDLE_FORMAT_SPECIFIER(arg, type) \
+do { \
+switch (type) \
+{ \
+   case 'u': \
+      print_uint64(arg); \
+      break; \
+   case 'd': \
+      print_int64(arg); \
+      break; \
+   case 'x': \
+      print_uint64_hex(arg); \
+      break; \
+   default: \
+      break; \
+} \
+} while (0)
+
 void print_uint64(uint64_t d)
 {
    char buf[64], *cur = buf+64;
@@ -55,7 +73,6 @@ void print_int64(int64_t d)
 int printk(const char *fmt, ...)
 {
    int i_arg;
-   unsigned int ui_arg;
    const char *cur, *str_arg;
    void *ptr_arg;
    long l_arg;
@@ -77,81 +94,34 @@ int printk(const char *fmt, ...)
                VGA_display_char(i_arg);
                break;
 
-            case 'd':
-               i_arg = va_arg(args, int);
-               print_int64(i_arg);
-               break;
-
-            case 'u':
-               ui_arg = va_arg(args, unsigned int);
-               print_uint64(ui_arg);
-               break;
-
-            case 'x':
-               ui_arg = va_arg(args, unsigned int);
-               print_uint64_hex(ui_arg);
-               break;
-
             case 'l':
                l_arg = va_arg(args, long);
-               switch (*(cur + 2))
-               {
-                  case 'u':
-                     print_uint64(l_arg);
-                     break;
-                  case 'd':
-                     print_int64(l_arg);
-                     break;
-                  case 'x':
-                     print_uint64_hex(l_arg);
-                     break;
-                  default:
-                     break;
-               }
+               HANDLE_FORMAT_SPECIFIER(l_arg, *(cur + 2));
                cur++;
                break;
 
             case 'h':
                i_arg = va_arg(args, int);
-               switch (*(cur + 2))
-               {
-                  case 'u':
-                     print_uint64(i_arg);
-                     break;
-                  case 'd':
-                     print_int64(i_arg);
-                     break;
-                  case 'x':
-                     print_uint64_hex(i_arg);
-                     break;
-                  default:
-                     break;
-               }
+               HANDLE_FORMAT_SPECIFIER(i_arg, *(cur + 2));
                cur++;
                break;
 
             case 'q':
                q_arg = va_arg(args, int64_t);
-               switch (*(cur + 2))
-               {
-                  case 'u':
-                     print_uint64(q_arg);
-                     break;
-                  case 'd':
-                     print_int64(q_arg);
-                     break;
-                  case 'x':
-                     print_uint64_hex(q_arg);
-                     break;
-                  default:
-                     break;
-               }
+               HANDLE_FORMAT_SPECIFIER(q_arg, *(cur + 2));
                cur++;
                break;
 
             case 'p':
                ptr_arg = va_arg(args, void *);
                print_uint64_hex((uint64_t)ptr_arg);
+               break;
+
+            case 'd':
+            case 'u':
+            case 'x':
+               i_arg = va_arg(args, int);
+               HANDLE_FORMAT_SPECIFIER(i_arg, *(cur + 1));            
                break;
 
             case '%':
