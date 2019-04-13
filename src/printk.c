@@ -94,6 +94,11 @@ int printk(const char *fmt, ...)
                VGA_display_char(i_arg);
                break;
 
+            case 'p':
+               ptr_arg = va_arg(args, void *);
+               print_uint64_hex((uint64_t)ptr_arg);
+               break;
+
             case 'l':
                l_arg = va_arg(args, long);
                HANDLE_FORMAT_SPECIFIER(l_arg, *(cur + 2));
@@ -110,11 +115,6 @@ int printk(const char *fmt, ...)
                q_arg = va_arg(args, int64_t);
                HANDLE_FORMAT_SPECIFIER(q_arg, *(cur + 2));
                cur++;
-               break;
-
-            case 'p':
-               ptr_arg = va_arg(args, void *);
-               print_uint64_hex((uint64_t)ptr_arg);
                break;
 
             case 'd':
