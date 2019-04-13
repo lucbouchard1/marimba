@@ -15,7 +15,10 @@ switch (specifier)                    \
       print_##type(arg);              \
       break;                          \
    case 'x':                          \
-      print_u##type##_hex(arg);       \
+      print_u##type##_hex(arg, 'a');  \
+      break;                          \
+   case 'X':                          \
+      print_u##type##_hex(arg, 'A');  \
       break;                          \
    default:                           \
       break;                          \
@@ -34,7 +37,7 @@ for (; d; d /= 10, cur--)             \
 VGA_display_str(cur + 1);             \
 } while (0)
 
-#define DISP_UNSIGNED_VAL_HEX(d) do { \
+#define DISP_UNSIGNED_VAL_HEX(d, bc) do { \
 char buf[64], *cur = buf+64;          \
 int digit;                            \
 *(cur--) = 0;                         \
@@ -47,7 +50,7 @@ for (; d; d /= 16, cur--) {           \
    if (digit < 10)                    \
       *cur = digit + '0';             \
    else                               \
-      *cur = (digit - 10) + 'a';      \
+      *cur = (digit - 10) + bc ;      \
 }                                     \
 VGA_display_str(cur + 1);             \
 } while (0)
@@ -61,19 +64,19 @@ print_u##type(d);                     \
 } while (0);
 
 void print_uint64_t(uint64_t d){ DISP_UNSIGNED_VAL_DEC(d); }
-void print_uint64_t_hex(uint64_t d) { DISP_UNSIGNED_VAL_HEX(d); }
+void print_uint64_t_hex(uint64_t d, char base_char) { DISP_UNSIGNED_VAL_HEX(d, base_char); }
 void print_int64_t(int64_t d) { DISP_SIGNED_VAL_DEC(d, int64_t); }
 
 void print_ulong(unsigned long d){ DISP_UNSIGNED_VAL_DEC(d); }
-void print_ulong_hex(unsigned long d) { DISP_UNSIGNED_VAL_HEX(d); }
+void print_ulong_hex(unsigned long d, char base_char) { DISP_UNSIGNED_VAL_HEX(d, base_char); }
 void print_long(long d) { DISP_SIGNED_VAL_DEC(d, long); }
 
 void print_uint(unsigned int d){ DISP_UNSIGNED_VAL_DEC(d); }
-void print_uint_hex(unsigned int d) { DISP_UNSIGNED_VAL_HEX(d); }
+void print_uint_hex(unsigned int d, char base_char) { DISP_UNSIGNED_VAL_HEX(d, base_char); }
 void print_int(int d) { DISP_SIGNED_VAL_DEC(d, int); }
 
 void print_ushort(unsigned short d){ DISP_UNSIGNED_VAL_DEC(d); }
-void print_ushort_hex(unsigned short d) { DISP_UNSIGNED_VAL_HEX(d); }
+void print_ushort_hex(unsigned short d, char base_char) { DISP_UNSIGNED_VAL_HEX(d, base_char); }
 void print_short(short d) { DISP_SIGNED_VAL_DEC(d, short); }
 
 int printk(const char *fmt, ...)
@@ -102,7 +105,7 @@ int printk(const char *fmt, ...)
 
             case 'p':
                ptr_arg = va_arg(args, void *);
-               print_uint64_t_hex((uint64_t)ptr_arg);
+               print_uint64_t_hex((uint64_t)ptr_arg, 'a');
                break;
 
             case 'l':
@@ -126,6 +129,7 @@ int printk(const char *fmt, ...)
             case 'd':
             case 'u':
             case 'x':
+            case 'X':
                i_arg = va_arg(args, int);
                HANDLE_FORMAT_SPECIFIER(i_arg, int, *(cur + 1));            
                break;
