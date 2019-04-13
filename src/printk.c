@@ -22,7 +22,7 @@ switch (specifier)                    \
 }                                     \
 } while (0)
 
-#define DISP_UNSIGNED_VAL_DEC(d)      \
+#define DISP_UNSIGNED_VAL_DEC(d) do { \
 char buf[64], *cur = buf+64;          \
 *(cur--) = 0;                         \
 if (!d) {                             \
@@ -31,9 +31,10 @@ if (!d) {                             \
 }                                     \
 for (; d; d /= 10, cur--)             \
    *cur = (d % 10) + '0';             \
-VGA_display_str(cur + 1);
+VGA_display_str(cur + 1);             \
+} while (0)
 
-#define DISP_UNSIGNED_VAL_HEX(d)      \
+#define DISP_UNSIGNED_VAL_HEX(d) do { \
 char buf[64], *cur = buf+64;          \
 int digit;                            \
 *(cur--) = 0;                         \
@@ -48,30 +49,32 @@ for (; d; d /= 16, cur--) {           \
    else                               \
       *cur = (digit - 10) + 'a';      \
 }                                     \
-VGA_display_str(cur + 1);
+VGA_display_str(cur + 1);             \
+} while (0)
 
-#define DISP_SIGNED_VAL_DEC(d, type)  \
+#define DISP_SIGNED_VAL_DEC(d, type) do { \
 if (d < 0) {                          \
    VGA_display_char('-');             \
    d *= -1;                           \
 }                                     \
-print_u##type(d);
+print_u##type(d);                     \
+} while (0);
 
-void print_uint64_t(uint64_t d){ DISP_UNSIGNED_VAL_DEC(d) }
-void print_uint64_t_hex(uint64_t d) { DISP_UNSIGNED_VAL_HEX(d) }
-void print_int64_t(int64_t d) { DISP_SIGNED_VAL_DEC(d, int64_t) }
+void print_uint64_t(uint64_t d){ DISP_UNSIGNED_VAL_DEC(d); }
+void print_uint64_t_hex(uint64_t d) { DISP_UNSIGNED_VAL_HEX(d); }
+void print_int64_t(int64_t d) { DISP_SIGNED_VAL_DEC(d, int64_t); }
 
-void print_ulong(unsigned long d){ DISP_UNSIGNED_VAL_DEC(d) }
-void print_ulong_hex(unsigned long d) { DISP_UNSIGNED_VAL_HEX(d) }
-void print_long(long d) { DISP_SIGNED_VAL_DEC(d, long) }
+void print_ulong(unsigned long d){ DISP_UNSIGNED_VAL_DEC(d); }
+void print_ulong_hex(unsigned long d) { DISP_UNSIGNED_VAL_HEX(d); }
+void print_long(long d) { DISP_SIGNED_VAL_DEC(d, long); }
 
-void print_uint(unsigned int d){ DISP_UNSIGNED_VAL_DEC(d) }
-void print_uint_hex(unsigned int d) { DISP_UNSIGNED_VAL_HEX(d) }
-void print_int(int d) { DISP_SIGNED_VAL_DEC(d, int) }
+void print_uint(unsigned int d){ DISP_UNSIGNED_VAL_DEC(d); }
+void print_uint_hex(unsigned int d) { DISP_UNSIGNED_VAL_HEX(d); }
+void print_int(int d) { DISP_SIGNED_VAL_DEC(d, int); }
 
-void print_ushort(unsigned short d){ DISP_UNSIGNED_VAL_DEC(d) }
-void print_ushort_hex(unsigned short d) { DISP_UNSIGNED_VAL_HEX(d) }
-void print_short(short d) { DISP_SIGNED_VAL_DEC(d, short) }
+void print_ushort(unsigned short d){ DISP_UNSIGNED_VAL_DEC(d); }
+void print_ushort_hex(unsigned short d) { DISP_UNSIGNED_VAL_HEX(d); }
+void print_short(short d) { DISP_SIGNED_VAL_DEC(d, short); }
 
 int printk(const char *fmt, ...)
 {
