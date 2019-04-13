@@ -30,13 +30,15 @@ void kmain(void)
    // VGA_display_str("Hello World\n");
    // VGA_display_str("!*&@&E()QWDJLASDOKJSKDHFWKL");
    long x = -200;
+   int p;
 
    printk("Integer %d %%\n", -128);
    printk("Char %c %c %c %c\n", 'H', 'i', 'J', 'K');
    printk("String %s %u\n", "Hello World", 1000);
    printk("Hex 0x%x\n", 0x12345abc);
    printk("Hex 0x%X\n", 0x12345abc);
-   printk("Shorts %ld %hd %hd", x, 13, 14);
+   printk("Shorts %ld %hd %hd\n", x, 13, 14);
+   printk("Pointer %p", (void *)&p);
 
    while(1);
 }

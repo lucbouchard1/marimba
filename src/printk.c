@@ -105,6 +105,7 @@ int printk(const char *fmt, ...)
 
             case 'p':
                ptr_arg = va_arg(args, void *);
+               VGA_display_str("0x");
                print_uint64_t_hex((uint64_t)ptr_arg, 'a');
                break;
 
