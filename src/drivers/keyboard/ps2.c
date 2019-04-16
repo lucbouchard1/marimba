@@ -35,16 +35,16 @@ char ps2_read_char(struct KeyboardDevice *dev)
    return 0;
 }
 
-static inline void ps2_wait_input_ready()
+static inline void ps2_wait_writable()
 {
    uint8_t status;
 
    status = inb(PS2_STATUS_PORT);
-   while(!(status & PS2_STATUS_INPUT))
+   while(status & PS2_STATUS_INPUT)
       status = inb(PS2_STATUS_PORT);
 }
 
-static inline void ps2_wait_output_ready()
+static inline void ps2_wait_readable()
 {
    uint8_t status;
 
@@ -59,7 +59,7 @@ static uint8_t ps2_read_cmd(uint8_t cmd)
    outb(PS2_CMD_PORT, cmd);
 
    /* Wait for data to be available */
-   ps2_wait_output_ready();
+   ps2_wait_readable();
    
    /* Read data */
    return inb(PS2_DATA_PORT);
@@ -71,7 +71,7 @@ static void ps2_write_cmd(uint8_t cmd, uint8_t val)
    outb(PS2_CMD_PORT, cmd);
 
    /* Wait for PS2 data port to be ready */
-   ps2_wait_input_ready();
+   ps2_wait_writable();
 
    /* Write data */
    outb(PS2_DATA_PORT, val);
@@ -80,7 +80,7 @@ static void ps2_write_cmd(uint8_t cmd, uint8_t val)
 static void ps2_write_data_p1(uint8_t val)
 {
    /* Wait for PS2 data port to be ready */
-   ps2_wait_input_ready();
+   ps2_wait_writable();
 
    /* Write data */
    outb(PS2_DATA_PORT, val);
@@ -89,7 +89,7 @@ static void ps2_write_data_p1(uint8_t val)
 static uint8_t ps2_read_data_p1()
 {
    /* Wait for PS2 data port to be ready */
-   ps2_wait_output_ready();
+   ps2_wait_readable();
 
    /* Read data */
    return inb(PS2_DATA_PORT);
@@ -137,6 +137,9 @@ struct KeyboardDevice *init_ps2()
    ps2_write_data_p1(0xFF);
    resp = ps2_read_data_p1();
    if (resp != 0xFA)
+      printk("error: PS2 device did not reset\n");
+   resp = ps2_read_data_p1();
+   if (resp != 0xAA)
       printk("error: PS2 device did not reset\n");
 
    /* setup poll loop just for now */
