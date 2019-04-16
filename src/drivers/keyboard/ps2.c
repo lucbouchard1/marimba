@@ -1,5 +1,6 @@
 #include "../../io.h"
 #include "../../printk.h"
+#include "../../string.h"
 #include "keyboard.h"
 
 #define PS2_DATA_PORT 0x60
@@ -25,15 +26,9 @@
 
 struct PS2Device {
    struct KeyboardDevice kb;
-   int shift_pressed;
 };
 
-static struct PS2Device dev;
-
-char ps2_read_char(struct KeyboardDevice *dev)
-{
-   return 0;
-}
+static struct PS2Device gdev;
 
 static inline void ps2_wait_writable()
 {
@@ -95,11 +90,34 @@ static uint8_t ps2_read_data_p1()
    return inb(PS2_DATA_PORT);
 }
 
+char ps2_read_char(struct KeyboardDevice *dev)
+{
+   uint8_t scode;
+
+   while (1) {
+      scode = ps2_read_data_p1();
+      if (scode == LEFT_SHIFT_SCAN_CODE || scode == RIGHT_SHIFT_SCAN_CODE)
+         dev->shift_pressed = 1;
+      else if (scode != RELEASED_SCAN_CODE)
+         return translate_scan_code(dev, scode);
+
+      if (scode == RELEASED_SCAN_CODE) { 
+         scode = ps2_read_data_p1();
+         if (scode == LEFT_SHIFT_SCAN_CODE ||
+               scode == RIGHT_SHIFT_SCAN_CODE)
+            dev->shift_pressed = 0;
+      }
+   }
+
+   return 0;
+}
+
 struct KeyboardDevice *init_ps2()
 {
    uint8_t cntl_cfg, resp;
 
-   dev.kb.read_char = &ps2_read_char;
+   memset(&gdev, 0, sizeof(struct PS2Device));
+   gdev.kb.read_char = &ps2_read_char;
 
    /* Disable both ports */
    outb(PS2_CMD_PORT, PS2_CMD_DISABLE_P1);
@@ -145,8 +163,7 @@ struct KeyboardDevice *init_ps2()
    /* setup poll loop just for now */
    printk("Starting to loop\n");
    while(1) {
-      resp = ps2_read_data_p1();
-      printk("%x\n", resp);
+      printk("%c", ps2_read_char((struct KeyboardDevice *)&gdev));
    }
 
    return 0;
