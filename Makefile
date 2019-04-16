@@ -9,15 +9,15 @@ CFLAGS += -g -Wall -Werror -pedantic
 
 LINKER_SCRIPT := src/arch/$(ARCH)/linker.ld
 GRUB_CFG := src/arch/$(ARCH)/grub.cfg
-C_SRC := $(wildcard src/*.c)
-C_OBJ := $(patsubst src/%.c, build/%.o, $(C_SRC))
+C_SRC := $(wildcard src/*.c) src/drivers/keyboard/ps2.c
+C_OBJ := $(patsubst src/%.c, build/%.o, $(C_SRC)) build/drivers/keyboard/ps2.o
 ASM_SRC := $(wildcard src/arch/$(ARCH)/*.asm)
 ASM_OBJ := $(patsubst src/arch/$(ARCH)/%.asm, \
 	build/arch/$(ARCH)/%.o, $(ASM_SRC))
 
 TESTS_C_SRC := $(wildcard tests/*.c)
 TESTS_C_OBJ := $(patsubst tests/%.c, tests/%.o, $(TESTS_C_SRC)) \
-		$(patsubst src/%.c, tests/%.o, $(C_SRC))
+		tests/string.o
 TESTS_EXECUTABLE = run_tests
 
 .PHONY: run clean test
@@ -56,7 +56,7 @@ build/arch/$(ARCH)/%.o: src/arch/$(ARCH)/%.asm
 
 build/%.o: src/%.c
 	@mkdir -p $(shell dirname $@)
-	$(TARGET_CC) $(CFLAGS) -mno-red-zone -ffreestanding -c -o $@ $<
+	$(TARGET_CC) -DARCH=$(ARCH) $(CFLAGS) -mno-red-zone -ffreestanding -c -o $@ $<
 
 tests/%.o: src/%.c
 	@mkdir -p $(shell dirname $@)

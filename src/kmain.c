@@ -1,5 +1,7 @@
 #include "vga.h"
 #include "printk.h"
+#include "io.h"
+#include "drivers/keyboard/keyboard.h"
 
 void kmain(void)
 {
@@ -34,11 +36,13 @@ void kmain(void)
 
    printk("Integer %d %%\n", -128);
    printk("Char %c %c %c %c\n", 'H', 'i', 'J', 'K');
-   printk("String %s %u\n", "Hello World", 1000);
+   printk("String %s %x\n", "Hello World", -1000);
    printk("Hex 0x%x\n", 0x12345abc);
    printk("Hex 0x%X\n", 0x12345abc);
    printk("Shorts %ld %hd %hd\n", x, 13, 14);
    printk("Pointer %p", (void *)&p);
+
+   init_ps2();
 
    while(1);
 }
