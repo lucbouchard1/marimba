@@ -162,5 +162,5 @@ p2_table:
 
 ; Reserve bytes for a small stack
 stack_bottom:
-   resb 64
+   resb 4096
 stack_top:
