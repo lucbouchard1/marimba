@@ -103,7 +103,6 @@ void IRQ_generic_isr_error(uint32_t irq, uint32_t err)
 
 void IRQ_init()
 {
-   int i;
    //PIC_remap(0x20, 0x28);
    //IRQ_clear_mask(1);
    //IRQ_clear_mask(12);

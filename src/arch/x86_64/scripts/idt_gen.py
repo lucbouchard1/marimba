@@ -7,7 +7,7 @@ target_offset_setup = """\
 """
 
 print('#include "../../string.h"')
-print('#include "<stdint.h>"')
+print('#include <stdint.h>')
 print('#pragma GCC diagnostic push')
 print('#pragma GCC diagnostic ignored "-Wpointer-to-int-cast"')
 

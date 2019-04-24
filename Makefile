@@ -9,20 +9,24 @@ CFLAGS += -g -Wall -Werror -pedantic
 
 LINKER_SCRIPT := src/arch/$(ARCH)/scripts/linker.ld
 GRUB_CFG := src/arch/$(ARCH)/grub.cfg
-C_SRC := $(wildcard src/*.c) src/arch/$(ARCH)/interrupts.c src/drivers/keyboard/ps2.c src/drivers/keyboard/keyboard.c
-C_OBJ := $(patsubst src/%.c, build/%.o, $(C_SRC)) build/drivers/keyboard/ps2.o build/drivers/keyboard/keyboard.o build/arch/$(ARCH)/interrupts.o
-ASM_SRC := $(wildcard src/arch/$(ARCH)/*.asm)
-ASM_OBJ := $(patsubst src/arch/$(ARCH)/%.asm, \
-	build/arch/$(ARCH)/%.o, $(ASM_SRC))
+C_SRC = $(shell find src/ -path src/arch -prune -o -print | grep .c$$) \
+		$(shell make --no-print-directory -C src/arch/$(ARCH) c_src)
+C_OBJ = $(patsubst src/%.c, build/%.o, $(C_SRC))
+ASM_SRC = $(shell make --no-print-directory -C src/arch/$(ARCH) asm_src)
+ASM_OBJ = $(patsubst src/arch/$(ARCH)/%.asm, \
+		build/arch/$(ARCH)/%.o, $(ASM_SRC))
 
 TESTS_C_SRC := $(wildcard tests/*.c)
 TESTS_C_OBJ := $(patsubst tests/%.c, tests/%.o, $(TESTS_C_SRC)) \
 		tests/string.o
 TESTS_EXECUTABLE = run_tests
 
-.PHONY: run clean test
+.PHONY: run clean test arch
 
-all: test $(MARIMBA_BOOTABLE_IMG)
+all: arch test $(MARIMBA_BOOTABLE_IMG)
+
+arch:
+	make -C src/arch/$(ARCH)
 
 $(MARIMBA_BOOTABLE_IMG): $(MARIMBA_BASE_FS)
 	@./scripts/create_img_file.sh $(MARIMBA_BOOTABLE_IMG) $(MARIMBA_BASE_FS)
@@ -64,3 +68,4 @@ tests/%.o: src/%.c
 
 clean:
 	rm -fr build tests/*.o $(TESTS_EXECUTABLE) $(KERNEL_FILENAME) $(MARIMBA_BASE_FS) $(MARIMBA_BOOTABLE_IMG)
+	make -C src/arch/$(ARCH) clean
