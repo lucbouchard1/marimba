@@ -2,8 +2,8 @@
 ISR_FILENAME = GENERATED_ASM_isr.asm
 IDT_FILENAME = GENERATED_C_idt.c
 
-ISR_SCRIPT = isr_gen.py
-IDT_SCRIPT = idt_gen.py
+ISR_SCRIPT = scripts/isr_gen.py
+IDT_SCRIPT = scripts/idt_gen.py
 
 all: $(ISR_FILENAME) $(IDT_FILENAME)
 
