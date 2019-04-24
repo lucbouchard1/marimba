@@ -2,6 +2,7 @@ global isr_normal
 global isr_error
 extern IRQ_generic_isr
 extern IRQ_generic_isr_error
+global isr_0
 
 section .text
 bits 64
@@ -16,3 +17,8 @@ isr_error:
    pop rdi
    add rsp, 4    ; Remove error code from stack
    iret
+
+isr_0:
+    push rdi
+    mov rdi, 0
+    jmp isr_normal

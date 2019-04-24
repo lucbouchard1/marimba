@@ -5,8 +5,6 @@
 
 extern int isr_0();
 
-extern void *idt_info;
-
 struct IDTEntry {
    uint16_t target_0_15;
    uint16_t target_selector;
@@ -28,7 +26,7 @@ static struct IDTEntry temp = {
    .dpl = 0,
    .ist = 0,
    .zero = 0,
-   .target_selector = 0
+   .target_selector = 0x8
 };
 
 static struct {
@@ -135,11 +133,9 @@ void IRQ_generic_isr_error(uint32_t irq, uint32_t err)
 void IRQ_init()
 {
    int i;
-   PIC_remap(0x20, 0x28);
-   IRQ_clear_mask(1);
-   IRQ_clear_mask(0);
-   IRQ_clear_mask(12);
-   IRQ_clear_mask(11);
+   //PIC_remap(0x20, 0x28);
+   //IRQ_clear_mask(1);
+   //IRQ_clear_mask(12);
 
 #pragma GCC diagnostic ignored "-Wpointer-to-int-cast"
    temp.target_0_15 = (uint16_t)isr_0;
@@ -150,8 +146,9 @@ void IRQ_init()
       memcpy(&IDT[i], &temp, sizeof(struct IDTEntry));
 
    IDT_desc.length =  (sizeof(struct IDTEntry)*256) - 1;
-   IDT_desc.base = &IDT;
+   IDT_desc.base = &IDT[0];
 
    asm ( "lidt %0" : : "m"(IDT_desc) );
-   asm ("sti");
+   i = 5 / 0;
+   //asm ("sti");
 }
