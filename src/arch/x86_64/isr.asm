@@ -17,8 +17,3 @@ isr_error:
    pop rdi
    add rsp, 4    ; Remove error code from stack
    iret
-
-isr_0:
-    push rdi
-    mov rdi, 0
-    jmp isr_normal

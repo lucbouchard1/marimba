@@ -9,10 +9,8 @@ void kmain(void)
    //int counter, i;
    //long delay;
 
-   IRQ_init();
-
-
    VGA_clear();
+   IRQ_init();
    // for (counter = 1; counter < 31; counter++) {
    //    for (i = 0; i < counter; i++) {
    //       VGA_display_str("a");

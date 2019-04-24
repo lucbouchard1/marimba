@@ -3,36 +3,7 @@
 #include "../../string.h"
 #include "../../io.h"
 
-extern int isr_0();
-
-struct IDTEntry {
-   uint16_t target_0_15;
-   uint16_t target_selector;
-   uint16_t ist: 3;
-   uint16_t rsvd1: 5;
-   uint16_t type: 4;
-   uint16_t zero: 1;
-   uint16_t dpl: 2;
-   uint16_t present: 1;
-   uint16_t target_16_31;
-   uint32_t target_32_63;
-   uint32_t rsvd2;
-} __attribute__ ((__packed__));
-
-static struct IDTEntry IDT[256];
-static struct IDTEntry temp = {
-   .type = 0xE,
-   .present = 1,
-   .dpl = 0,
-   .ist = 0,
-   .zero = 0,
-   .target_selector = 0x8
-};
-
-static struct {
-   uint16_t length;
-   void* base;
-} __attribute__((packed)) IDT_desc;
+extern void IDT_init();
 
 #define PIC1		0x20		/* IO base address for master PIC */
 #define PIC2		0xA0		/* IO base address for slave PIC */
@@ -137,18 +108,7 @@ void IRQ_init()
    //IRQ_clear_mask(1);
    //IRQ_clear_mask(12);
 
-#pragma GCC diagnostic ignored "-Wpointer-to-int-cast"
-   temp.target_0_15 = (uint16_t)isr_0;
-   temp.target_16_31 = (uint16_t)((uint64_t)isr_0 >> 16);
-   temp.target_32_63 = (uint32_t)((uint64_t)isr_0 >> 32);
+   IDT_init();
 
-   for (i = 0; i < 256; i++)
-      memcpy(&IDT[i], &temp, sizeof(struct IDTEntry));
-
-   IDT_desc.length =  (sizeof(struct IDTEntry)*256) - 1;
-   IDT_desc.base = &IDT[0];
-
-   asm ( "lidt %0" : : "m"(IDT_desc) );
-   i = 5 / 0;
-   //asm ("sti");
+   STI;
 }
