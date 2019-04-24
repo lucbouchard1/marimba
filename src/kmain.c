@@ -1,6 +1,7 @@
 #include "vga.h"
 #include "printk.h"
 #include "io.h"
+#include "interrupts.h"
 #include "drivers/keyboard/keyboard.h"
 
 void kmain(void)
@@ -8,8 +9,10 @@ void kmain(void)
    //int counter, i;
    //long delay;
 
-   VGA_clear();
+   IRQ_init();
 
+
+   VGA_clear();
    // for (counter = 1; counter < 31; counter++) {
    //    for (i = 0; i < counter; i++) {
    //       VGA_display_str("a");

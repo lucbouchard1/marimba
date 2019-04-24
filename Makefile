@@ -9,8 +9,8 @@ CFLAGS += -g -Wall -Werror -pedantic
 
 LINKER_SCRIPT := src/arch/$(ARCH)/linker.ld
 GRUB_CFG := src/arch/$(ARCH)/grub.cfg
-C_SRC := $(wildcard src/*.c) src/drivers/keyboard/ps2.c src/drivers/keyboard/keyboard.c
-C_OBJ := $(patsubst src/%.c, build/%.o, $(C_SRC)) build/drivers/keyboard/ps2.o build/drivers/keyboard/keyboard.o
+C_SRC := $(wildcard src/*.c) src/arch/$(ARCH)/interrupts.c src/drivers/keyboard/ps2.c src/drivers/keyboard/keyboard.c
+C_OBJ := $(patsubst src/%.c, build/%.o, $(C_SRC)) build/drivers/keyboard/ps2.o build/drivers/keyboard/keyboard.o build/arch/$(ARCH)/interrupts.o
 ASM_SRC := $(wildcard src/arch/$(ARCH)/*.asm)
 ASM_OBJ := $(patsubst src/arch/$(ARCH)/%.asm, \
 	build/arch/$(ARCH)/%.o, $(ASM_SRC))

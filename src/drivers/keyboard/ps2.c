@@ -130,8 +130,10 @@ struct KeyboardDevice *init_ps2()
    cntl_cfg = ps2_read_cmd(PS2_CMD_READ_CNTL_CFG);
 
    /* Set controller configuration appropriately */
-   cntl_cfg = cntl_cfg & ~(PS2_CNTL_CFG_P1_INT
+   cntl_cfg &= ~(PS2_CNTL_CFG_P1_INT
          | PS2_CNTL_CFG_P2_INT | PS2_CNTL_CFG_TRANS);
+   /* enable interrupts for p1 */
+   cntl_cfg |= PS2_CNTL_CFG_P1_INT;
 
    /* Write controller configuration back out */
    ps2_write_cmd(PS2_CMD_WRITE_CNTL_CFG, cntl_cfg);
@@ -161,10 +163,10 @@ struct KeyboardDevice *init_ps2()
       printk("error: PS2 device did not reset\n");
 
    /* setup poll loop just for now */
-   printk("Starting to loop\n");
-   while(1) {
-      printk("%c", ps2_read_char((struct KeyboardDevice *)&gdev));
-   }
+   //printk("Starting to loop\n");
+   //while(1) {
+   //   printk("%c", ps2_read_char((struct KeyboardDevice *)&gdev));
+   //}
 
    return 0;
 }
