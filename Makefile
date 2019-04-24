@@ -7,7 +7,7 @@ TARGET_CC = x86_64-elf-gcc
 TARGET_LD = x86_64-elf-ld
 CFLAGS += -g -Wall -Werror -pedantic
 
-LINKER_SCRIPT := src/arch/$(ARCH)/linker.ld
+LINKER_SCRIPT := src/arch/$(ARCH)/scripts/linker.ld
 GRUB_CFG := src/arch/$(ARCH)/grub.cfg
 C_SRC := $(wildcard src/*.c) src/arch/$(ARCH)/interrupts.c src/drivers/keyboard/ps2.c src/drivers/keyboard/keyboard.c
 C_OBJ := $(patsubst src/%.c, build/%.o, $(C_SRC)) build/drivers/keyboard/ps2.o build/drivers/keyboard/keyboard.o build/arch/$(ARCH)/interrupts.o
