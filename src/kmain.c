@@ -10,7 +10,10 @@ void kmain(void)
    //long delay;
 
    VGA_clear();
+   init_ps2();
    IRQ_init();
+   while(1);
+   
    // for (counter = 1; counter < 31; counter++) {
    //    for (i = 0; i < counter; i++) {
    //       VGA_display_str("a");

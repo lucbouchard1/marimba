@@ -92,20 +92,19 @@ void IRQ_clear_mask(unsigned char IRQline) {
 
 void IRQ_generic_isr(uint32_t irq)
 {
-   printk("Recieved interrupt: %d\n", irq);
-   asm("hlt;");
+   printk("Received interrupt: 0x%X\n", irq);
 }
 
 void IRQ_generic_isr_error(uint32_t irq, uint32_t err)
 {
-   printk("Recieved error interrupt: %d %d\n", irq, err);
+   printk("Received error interrupt: 0x%X 0x%X\n", irq, err);
 }
 
 void IRQ_init()
 {
-   //PIC_remap(0x20, 0x28);
-   //IRQ_clear_mask(1);
-   //IRQ_clear_mask(12);
+   PIC_remap(0x20, 0x28);
+   IRQ_clear_mask(1);
+   IRQ_clear_mask(12);
 
    IDT_init();
 
