@@ -12,7 +12,7 @@ void kmain(void)
    VGA_clear();
    init_ps2();
    IRQ_init();
-   IRQ_clear_mask(1); // Enable interrupts from keyboard!!
+   IRQ_clear_mask(0x21); // Enable interrupts from keyboard!!
    while(1);
    
    // for (counter = 1; counter < 31; counter++) {

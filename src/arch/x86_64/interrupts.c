@@ -11,6 +11,7 @@ extern void IDT_init();
 #define PIC_MASTER_DATA	(PIC_MASTER_PORT+1)
 #define PIC_SLAVE_COMMAND	PIC_SLAVE_PORT
 #define PIC_SLAVE_DATA	(PIC_SLAVE_PORT+1)
+#define PIC_EOI		0x20		/* End-of-interrupt command code */
 
 #define PIC_MASTER_REMAP_BASE 0x20
 #define PIC_SLAVE_REMAP_BASE PIC_MASTER_REMAP_BASE + 8
@@ -26,6 +27,11 @@ extern void IDT_init();
 #define ICW4_BUF_SLAVE	0x08		/* Buffered mode/slave */
 #define ICW4_BUF_MASTER	0x0C		/* Buffered mode/master */
 #define ICW4_SFNM	0x10		/* Special fully nested (not) */
+
+static struct IRQHandler {
+   irq_handler_t handler;
+   void *arg;
+} handlers[256];
 
 void PIC_init()
 {
@@ -60,8 +66,6 @@ void PIC_init()
          IRQ_set_mask(i);
 }
 
-#define PIC_EOI		0x20		/* End-of-interrupt command code */
- 
 void PIC_sendEOI(unsigned char irq)
 {
 	if(irq >= 8)
@@ -70,48 +74,97 @@ void PIC_sendEOI(unsigned char irq)
 	outb(PIC_MASTER_COMMAND,PIC_EOI);
 }
 
-void IRQ_set_mask(unsigned char IRQline) {
-    uint16_t port;
-    uint8_t value;
- 
-    if(IRQline < 8) {
-        port = PIC_MASTER_DATA;
-    } else {
-        port = PIC_SLAVE_DATA;
-        IRQline -= 8;
-    }
-    value = inb(port) | (1 << IRQline);
-    outb(port, value);        
+void IRQ_set_mask(unsigned char irq) {
+   uint16_t port;
+   uint8_t value;
+   int IRQline = irq - PIC_MASTER_REMAP_BASE;
+
+   if (IRQline < 0 || IRQline > 0x2F) {
+      printk("error: masking not supported on irq %d\n", irq);
+      return;
+   }
+
+   if(IRQline < 8) {
+      port = PIC_MASTER_DATA;
+   } else {
+      port = PIC_SLAVE_DATA;
+      IRQline -= 8;
+   }
+   value = inb(port) | (1 << IRQline);
+   outb(port, value);        
 }
 
-void IRQ_clear_mask(unsigned char IRQline) {
-    uint16_t port;
-    uint8_t value;
- 
-    if(IRQline < 8) {
-        port = PIC_MASTER_DATA;
-    } else {
-        port = PIC_SLAVE_DATA;
-        IRQline -= 8;
-    }
-    value = inb(port) & ~(1 << IRQline);
-    outb(port, value);        
+void IRQ_clear_mask(unsigned char irq) {
+   uint16_t port;
+   uint8_t value;
+   int IRQline = irq - PIC_MASTER_REMAP_BASE;
+
+   if (IRQline < 0 || IRQline > 0x2F) {
+      printk("error: masking not supported on irq %d\n", irq);
+      return;
+   }
+
+   if(IRQline < 8) {
+      port = PIC_MASTER_DATA;
+   } else {
+      port = PIC_SLAVE_DATA;
+      IRQline -= 8;
+   }
+   value = inb(port) & ~(1 << IRQline);
+   outb(port, value);        
+}
+
+void IRQ_end_of_interrupt(unsigned char irq)
+{
+   uint16_t port;
+   uint8_t value;
+   int IRQline = irq - PIC_MASTER_REMAP_BASE;
+
+   if (IRQline < 0 || IRQline > 0x2F) {
+      printk("error: end of interrupt not supported on irq %d\n", irq);
+      return;
+   }
+
+   PIC_sendEOI(IRQline);    
 }
 
 void IRQ_generic_isr(uint32_t irq)
 {
-   if (irq >= 0x20 && irq <= 0x2F)
-      IRQ_clear_mask(irq - PIC_MASTER_REMAP_BASE);
-   printk("Received interrupt: 0x%X\n", irq);
+   if (handlers[irq].handler)
+      handlers[irq].handler(irq, 0, handlers[irq].arg);
+   else
+      printk("Received unhandled interrupt: 0x%X\n", irq);
+
+   if (irq >= PIC_MASTER_REMAP_BASE && irq <= (PIC_MASTER_REMAP_BASE + 0x2F))
+      PIC_sendEOI(irq - PIC_MASTER_REMAP_BASE);
 }
 
 void IRQ_generic_isr_error(uint32_t irq, uint32_t err)
 {
-   printk("Received error interrupt: 0x%X 0x%X\n", irq, err);
+   if (handlers[irq].handler)
+      handlers[irq].handler(irq, err, handlers[irq].arg);
+   else
+      printk("Received unhandled error interrupt: 0x%X 0x%X\n", irq, err);
+
+   if (irq >= PIC_MASTER_REMAP_BASE && irq <= (PIC_MASTER_REMAP_BASE + 0x2F))
+      PIC_sendEOI(irq - PIC_MASTER_REMAP_BASE);
+}
+
+void IRQ_set_handler(int irq, irq_handler_t handler, void *arg)
+{
+   if (irq > 256 || irq < 0) {
+      printf("error: cannot setup interrupt handler on irq %d\n", irq);
+      return;
+   }
+
+   handlers[irq].handler = handler;
+   handlers[irq].arg = arg;
 }
 
 void IRQ_init()
 {
+   memset(handlers, 0, sizeof(struct IRQHandler)*256);
+
    PIC_init();
    IDT_init();
 
