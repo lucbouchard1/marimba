@@ -116,8 +116,6 @@ void IRQ_clear_mask(unsigned char irq) {
 
 void IRQ_end_of_interrupt(unsigned char irq)
 {
-   uint16_t port;
-   uint8_t value;
    int IRQline = irq - PIC_MASTER_REMAP_BASE;
 
    if (IRQline < 0 || IRQline > 0x2F) {
@@ -153,7 +151,7 @@ void IRQ_generic_isr_error(uint32_t irq, uint32_t err)
 void IRQ_set_handler(int irq, irq_handler_t handler, void *arg)
 {
    if (irq > 256 || irq < 0) {
-      printf("error: cannot setup interrupt handler on irq %d\n", irq);
+      printk("error: cannot setup interrupt handler on irq %d\n", irq);
       return;
    }
 
