@@ -5,16 +5,16 @@
 
 extern void IDT_init();
 
-#define PIC1		0x20		/* IO base address for master PIC */
-#define PIC2		0xA0		/* IO base address for slave PIC */
-#define PIC1_COMMAND	PIC1
-#define PIC1_DATA	(PIC1+1)
-#define PIC2_COMMAND	PIC2
-#define PIC2_DATA	(PIC2+1)
+#define PIC_MASTER_PORT		0x20		/* IO base address for master PIC */
+#define PIC_SLAVE_PORT		0xA0		/* IO base address for slave PIC */
+#define PIC_MASTER_COMMAND	PIC_MASTER_PORT
+#define PIC_MASTER_DATA	(PIC_MASTER_PORT+1)
+#define PIC_SLAVE_COMMAND	PIC_SLAVE_PORT
+#define PIC_SLAVE_DATA	(PIC_SLAVE_PORT+1)
 
-/* reinitialize the PIC controllers, giving them specified vector offsets
-   rather than 8h and 70h, as configured by default */
- 
+#define PIC_MASTER_REMAP_BASE 0x20
+#define PIC_SLAVE_REMAP_BASE PIC_MASTER_REMAP_BASE + 8
+
 #define ICW1_ICW4	0x01		/* ICW4 (not) needed */
 #define ICW1_SINGLE	0x02		/* Single (cascade) mode */
 #define ICW1_INTERVAL4	0x04		/* Call address interval 4 (8) */
@@ -26,40 +26,48 @@ extern void IDT_init();
 #define ICW4_BUF_SLAVE	0x08		/* Buffered mode/slave */
 #define ICW4_BUF_MASTER	0x0C		/* Buffered mode/master */
 #define ICW4_SFNM	0x10		/* Special fully nested (not) */
- 
-/*
-arguments:
-	offset1 - vector offset for master PIC
-		vectors on the master become offset1..offset1+7
-	offset2 - same for slave PIC: offset2..offset2+7
-*/
-void PIC_remap(int offset1, int offset2)
+
+void PIC_init()
 {
 	unsigned char a1, a2;
+   int i;
+
+   /* Save masks */
+   a1 = inb(PIC_MASTER_DATA);
+   a2 = inb(PIC_SLAVE_DATA);
  
-	a1 = inb(PIC1_DATA);                        // save masks
-	a2 = inb(PIC2_DATA);
+   /* Initialize PIC to cascade mode */
+   outb(PIC_MASTER_COMMAND, ICW1_INIT | ICW1_ICW4);
+   outb(PIC_SLAVE_COMMAND, ICW1_INIT | ICW1_ICW4);
+
+   /* Remap PIC interrupt numbers to remove conflicts */
+   outb(PIC_MASTER_DATA, PIC_MASTER_REMAP_BASE);
+   outb(PIC_SLAVE_DATA, PIC_SLAVE_REMAP_BASE);
+   /* ICW3: tell Master PIC that there is a slave PIC at IRQ2 (0000 0100) */
+   outb(PIC_MASTER_DATA, 4);
+   /* ICW3: tell Slave PIC its cascade identity (0000 0010)*/
+   outb(PIC_SLAVE_DATA, 2);
+
+   outb(PIC_MASTER_DATA, ICW4_8086);
+	outb(PIC_SLAVE_DATA, ICW4_8086);
  
-	outb(PIC1_COMMAND, ICW1_INIT | ICW1_ICW4);  // starts the initialization sequence (in cascade mode)
-	//io_wait();
-	outb(PIC2_COMMAND, ICW1_INIT | ICW1_ICW4);
-	//io_wait();
-	outb(PIC1_DATA, offset1);                 // ICW2: Master PIC vector offset
-	//io_wait();
-	outb(PIC2_DATA, offset2);                 // ICW2: Slave PIC vector offset
-	//io_wait();
-	outb(PIC1_DATA, 4);                       // ICW3: tell Master PIC that there is a slave PIC at IRQ2 (0000 0100)
-	//io_wait();
-	outb(PIC2_DATA, 2);                       // ICW3: tell Slave PIC its cascade identity (0000 0010)
-	//io_wait();
+   outb(PIC_MASTER_DATA, a1);
+   outb(PIC_SLAVE_DATA, a2);
+
+   /* Mask all interrupts for now, except for slave interrupt (IRQ2) */
+   for (i = 0; i < 16; i++)
+      if (i != 2)
+         IRQ_set_mask(i);
+}
+
+#define PIC_EOI		0x20		/* End-of-interrupt command code */
  
-	outb(PIC1_DATA, ICW4_8086);
-	//io_wait();
-	outb(PIC2_DATA, ICW4_8086);
-	//io_wait();
+void PIC_sendEOI(unsigned char irq)
+{
+	if(irq >= 8)
+		outb(PIC_SLAVE_COMMAND,PIC_EOI);
  
-	outb(PIC1_DATA, a1);   // restore saved masks.
-	outb(PIC2_DATA, a2);
+	outb(PIC_MASTER_COMMAND,PIC_EOI);
 }
 
 void IRQ_set_mask(unsigned char IRQline) {
@@ -67,9 +75,9 @@ void IRQ_set_mask(unsigned char IRQline) {
     uint8_t value;
  
     if(IRQline < 8) {
-        port = PIC1_DATA;
+        port = PIC_MASTER_DATA;
     } else {
-        port = PIC2_DATA;
+        port = PIC_SLAVE_DATA;
         IRQline -= 8;
     }
     value = inb(port) | (1 << IRQline);
@@ -81,9 +89,9 @@ void IRQ_clear_mask(unsigned char IRQline) {
     uint8_t value;
  
     if(IRQline < 8) {
-        port = PIC1_DATA;
+        port = PIC_MASTER_DATA;
     } else {
-        port = PIC2_DATA;
+        port = PIC_SLAVE_DATA;
         IRQline -= 8;
     }
     value = inb(port) & ~(1 << IRQline);
@@ -92,6 +100,8 @@ void IRQ_clear_mask(unsigned char IRQline) {
 
 void IRQ_generic_isr(uint32_t irq)
 {
+   if (irq >= 0x20 && irq <= 0x2F)
+      IRQ_clear_mask(irq - PIC_MASTER_REMAP_BASE);
    printk("Received interrupt: 0x%X\n", irq);
 }
 
@@ -102,10 +112,7 @@ void IRQ_generic_isr_error(uint32_t irq, uint32_t err)
 
 void IRQ_init()
 {
-   PIC_remap(0x20, 0x28);
-   IRQ_clear_mask(1);
-   IRQ_clear_mask(12);
-
+   PIC_init();
    IDT_init();
 
    STI;
