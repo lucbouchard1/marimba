@@ -58,6 +58,30 @@ char translate_scan_code(struct KeyboardDevice *dev, uint8_t code)
          return dev->shift_pressed ? 'Y' : 'y';
       case 0x1a:
          return dev->shift_pressed ? 'Z' : 'z';
+      case 0x16:
+         return dev->shift_pressed ? '!' : '1';
+      case 0x1e:
+         return dev->shift_pressed ? '@' : '2';
+      case 0x26:
+         return dev->shift_pressed ? '#' : '3';
+      case 0x25:
+         return dev->shift_pressed ? '$' : '4';
+      case 0x2e:
+         return dev->shift_pressed ? '%' : '5';
+      case 0x36:
+         return dev->shift_pressed ? '^' : '6';
+      case 0x3d:
+         return dev->shift_pressed ? '&' : '7';
+      case 0x3e:
+         return dev->shift_pressed ? '*' : '8';
+      case 0x46:
+         return dev->shift_pressed ? '(' : '9';
+      case 0x45:
+         return dev->shift_pressed ? ')' : '0';
+      case 0x4e:
+         return dev->shift_pressed ? '_' : '-';
+      case 0x55:
+         return dev->shift_pressed ? '+' : '=';
       case 0x5A:
          return '\n';
       case 0x29:
