@@ -63,7 +63,7 @@ void PIC_init()
    /* Mask all interrupts for now, except for slave interrupt (IRQ2) */
    for (i = 0; i < 16; i++)
       if (i != 2)
-         IRQ_set_mask(i);
+         IRQ_set_mask(i + PIC_MASTER_REMAP_BASE);
 }
 
 void PIC_sendEOI(unsigned char irq)
