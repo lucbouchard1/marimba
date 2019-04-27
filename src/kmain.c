@@ -2,6 +2,7 @@
 #include "printk.h"
 #include "io.h"
 #include "interrupts.h"
+#include "hw_init.h"
 #include "drivers/keyboard/keyboard.h"
 
 void keyboard_isr(int irq, int err, void *arg)
@@ -18,7 +19,7 @@ void kmain(void)
    struct KeyboardDevice *kdev;   
    //int counter, i;
    //long delay;
-
+   HW_init();
    VGA_clear();
    IRQ_init();
 
