@@ -5,6 +5,9 @@
 
 #define GDT_LENGTH 3
 
+#define GDT_USER_CODE_TYPE_EXECUTE_ONLY 0x8
+#define GDT_SYS_TYPE_TSS 0x9
+
 extern void *stack1_top;
 extern void *stack2_top;
 extern void *stack3_top;
@@ -98,10 +101,10 @@ void init_gdt()
    tss.ist[3] = &stack4_top;
 
    /* Setup code GDT entry */
-   gdt_user_init(&GDT[1], 0, 0, 0x8);
+   gdt_user_init(&GDT[1], 0, 0, GDT_USER_CODE_TYPE_EXECUTE_ONLY);
 
    /* Setup TSS GDT entry */
-   gdt_sys_init(&GDT[2], (uint64_t)&tss, sizeof(struct TSS), 0x9);
+   gdt_sys_init(&GDT[2], (uint64_t)&tss, sizeof(struct TSS), GDT_SYS_TYPE_TSS);
 
    asm( "lgdt %0" : : "m"(GDTR) );
    asm( "ltr %w0" : : "r"(2*sizeof(struct GDTEntry)) );
