@@ -18,16 +18,21 @@ struct TSS {
    uint16_t io_map_base;
 } __attribute__((__packed__));
 
-struct SegmentDescriptor {
+struct TSSDescriptor {
+   uint32_t base_32_63;
+   uint8_t rsvd2;
+   uint8_t zero: 5;
+   uint8_t rsvd3: 3;
+   uint16_t rsvd4;
+} __attribute__((__packed__));
+
+struct GDTEntry {
    uint16_t limit_0_15;
    uint16_t base_0_15;
    uint8_t base_16_23;
 
-   uint8_t a: 1;
-   uint8_t w: 1;
-   uint8_t e: 1;
-   uint8_t is_code_segment: 1;
-   uint8_t one: 1;
+   uint8_t type: 4;
+   uint8_t user_segment: 1;
    uint8_t dpl: 2;
    uint8_t present: 1;
 
@@ -38,24 +43,14 @@ struct SegmentDescriptor {
    uint8_t g: 1;
 
    uint8_t base_24_31;
-} __attribute__ ((__packed__));
 
-struct TSSDescriptor {
-   struct SegmentDescriptor seg;
-   uint32_t base_32_63;
-   uint8_t rsvd2;
-   uint8_t zero: 5;
-   uint8_t rsvd3: 3;
-   uint16_t rsvd4;
-} __attribute__((__packed__));
-
-union GDTEntry {
-   struct SegmentDescriptor seg;
-   struct TSSDescriptor tss;
+   union SystemSegment {
+      struct TSSDescriptor tss;
+   } sys;
 } __attribute__((__packed__));
 
 static struct TSS tss;
-static union GDTEntry GDT[3];
+static struct GDTEntry GDT[3];
 
 static struct {
    uint16_t length;
@@ -64,9 +59,8 @@ static struct {
 
 void init_gdt()
 {
-   GDTR.length = (sizeof(union GDTEntry)*3) - 1;
+   GDTR.length = (sizeof(struct GDTEntry)*3) - 1;
    GDTR.base = GDT;
-   uint8_t tss_desc_offset;
 
    memset(&tss, 0, sizeof(struct TSS));
    tss.ist[0] = &stack1_top;
@@ -74,33 +68,32 @@ void init_gdt()
    tss.ist[2] = &stack3_top;
    tss.ist[3] = &stack4_top;
 
-   memset(GDT, 0, sizeof(union GDTEntry)*3);
-   GDT[1].seg.is_code_segment = 1;
-   GDT[1].seg.one = 1;
-   GDT[1].seg.present = 1;
-   GDT[1].seg.l = 1; /* Main code entry */
+   memset(GDT, 0, sizeof(struct GDTEntry)*3);
 
-   GDT[2].tss.seg.is_code_segment = 1;
-   GDT[2].tss.seg.one = 0;
-   GDT[2].tss.seg.present = 1;
-   GDT[2].tss.seg.l = 1;
-   GDT[2].tss.seg.a = 1;
-   GDT[2].tss.zero = 0; /* TSS entry */
+   /* Setup code GDT entry */
+   GDT[1].user_segment = 1;
+   GDT[1].type = 0x8;
+   GDT[1].present = 1;
+   GDT[1].l = 1;
 
+   /* Setup TSS GDT entry */
+   GDT[2].user_segment = 0;
+   GDT[2].type = 0x9;
+   GDT[2].present = 1;
+   GDT[2].l = 1;
+   GDT[2].sys.tss.zero = 0; /* TSS entry */
 
-   GDT[2].tss.seg.limit_0_15 = sizeof(struct TSS);
+   GDT[2].limit_0_15 = sizeof(struct TSS);
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wpointer-to-int-cast"
-   GDT[2].tss.seg.base_0_15 = (uint16_t)&tss;
-   GDT[2].tss.seg.base_16_23 = (uint8_t)((uint64_t)&tss >> 16);
-   GDT[2].tss.seg.base_24_31 = (uint8_t)((uint64_t)&tss >> 24);
-   GDT[2].tss.base_32_63 = (uint32_t)((uint64_t)&tss >> 32);
+   GDT[2].base_0_15 = (uint16_t)&tss;
+   GDT[2].base_16_23 = (uint8_t)((uint64_t)&tss >> 16);
+   GDT[2].base_24_31 = (uint8_t)((uint64_t)&tss >> 24);
+   GDT[2].sys.tss.base_32_63 = (uint32_t)((uint64_t)&tss >> 32);
 #pragma GCC diagnostic pop
 
-   tss_desc_offset = 2*sizeof(union GDTEntry);
-
    asm( "lgdt %0" : : "m"(GDTR) );
-   asm( "ltr %w0" : : "r"(tss_desc_offset) );
+   asm( "ltr %w0" : : "r"(2*sizeof(struct GDTEntry)) );
 }
 
 void HW_init()
