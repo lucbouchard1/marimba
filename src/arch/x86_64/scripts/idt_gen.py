@@ -35,7 +35,7 @@ static struct IDTEntry template = {
    .dpl = 0,
    .ist = 1,
    .zero = 0,
-   .target_selector = 0x8
+   .target_selector = 0x10
 };
 static struct IDTEntry IDT[256];
 static struct {

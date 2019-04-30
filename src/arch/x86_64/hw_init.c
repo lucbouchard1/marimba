@@ -1,4 +1,5 @@
 #include <stdint.h>
+#include "../../string.h"
 
 #include "../../hw_init.h"
 
@@ -28,8 +29,8 @@ struct SegmentDescriptor {
    uint8_t is_code_segment: 1;
    uint8_t one: 1;
    uint8_t dpl: 2;
-
    uint8_t present: 1;
+
    uint8_t segment_limit_16_19: 4;
    uint8_t avl: 1;
    uint8_t l: 1;
@@ -54,14 +55,7 @@ union GDTEntry {
 } __attribute__((__packed__));
 
 static struct TSS tss;
-
-static struct TSSDescriptor tss_desc;
-
-static union GDTEntry GDT[] = {
-   {.seg.base_0_15 = 0}, /* Zero entry */
-   {.seg.is_code_segment = 1, .seg.one = 1, .seg.present = 1, .seg.l = 1}, /* Main code entry */
-   {.seg.is_code_segment = 1, .seg.one = 1, .seg.present = 1, .seg.l = 1, .seg.a = 1} /* TSS entry */
-};
+static union GDTEntry GDT[3];
 
 static struct {
    uint16_t length;
@@ -74,18 +68,33 @@ void init_gdt()
    GDTR.base = GDT;
    uint8_t tss_desc_offset;
 
-   tss.ist[0] = stack1_top;
-   tss.ist[1] = stack2_top;
-   tss.ist[2] = stack3_top;
-   tss.ist[3] = stack4_top;
+   memset(&tss, 0, sizeof(struct TSS));
+   tss.ist[0] = &stack1_top;
+   tss.ist[1] = &stack2_top;
+   tss.ist[2] = &stack3_top;
+   tss.ist[3] = &stack4_top;
 
-   GDT[2].tss.seg.limit_0_15 = sizeof(struct TSSDescriptor);
+   memset(GDT, 0, sizeof(union GDTEntry)*3);
+   GDT[1].seg.is_code_segment = 1;
+   GDT[1].seg.one = 1;
+   GDT[1].seg.present = 1;
+   GDT[1].seg.l = 1; /* Main code entry */
+
+   GDT[2].tss.seg.is_code_segment = 1;
+   GDT[2].tss.seg.one = 0;
+   GDT[2].tss.seg.present = 1;
+   GDT[2].tss.seg.l = 1;
+   GDT[2].tss.seg.a = 1;
+   GDT[2].tss.zero = 0; /* TSS entry */
+
+
+   GDT[2].tss.seg.limit_0_15 = sizeof(struct TSS);
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wpointer-to-int-cast"
-   GDT[2].tss.seg.base_0_15 = (uint16_t)&tss_desc;
-   GDT[2].tss.seg.base_16_23 = (uint8_t)((uint64_t)&tss_desc >> 16);
-   GDT[2].tss.seg.base_24_31 = (uint8_t)((uint64_t)&tss_desc >> 24);
-   GDT[2].tss.base_32_63 = (uint8_t)((uint64_t)&tss_desc >> 32);
+   GDT[2].tss.seg.base_0_15 = (uint16_t)&tss;
+   GDT[2].tss.seg.base_16_23 = (uint8_t)((uint64_t)&tss >> 16);
+   GDT[2].tss.seg.base_24_31 = (uint8_t)((uint64_t)&tss >> 24);
+   GDT[2].tss.base_32_63 = (uint32_t)((uint64_t)&tss >> 32);
 #pragma GCC diagnostic pop
 
    tss_desc_offset = 2*sizeof(union GDTEntry);
