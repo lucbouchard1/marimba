@@ -47,7 +47,7 @@ print('{')
 
 for irq in range(256):
     print(target_offset_setup.format(irq))
-    print('   memcpy(&IDT[{0}], &template, sizeof(struct IDTEntry));'.format(irq))
+    print('   IDT[{0}] = template;'.format(irq))
     print('')
 
 print('   IDT_desc.length =  (sizeof(struct IDTEntry)*256) - 1;')
