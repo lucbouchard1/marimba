@@ -33,7 +33,7 @@ static struct IDTEntry template = {
    .type = 0xE,
    .present = 1,
    .dpl = 0,
-   .ist = 0,
+   .ist = 1,
    .zero = 0,
    .target_selector = 0x8
 };

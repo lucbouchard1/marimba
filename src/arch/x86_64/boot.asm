@@ -1,11 +1,12 @@
 global start
 extern long_mode_start
+extern stack0_top
 
 section .text
 bits 32
 start:
    ; Initialize the stack
-   mov esp, stack_top
+   mov esp, stack0_top
 
    call check_multiboot
    call check_cpuid
@@ -159,8 +160,3 @@ p3_table:
    resb 4096
 p2_table:
    resb 4096
-
-; Reserve bytes for a small stack
-stack_bottom:
-   resb 4096
-stack_top:
