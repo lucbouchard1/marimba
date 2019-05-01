@@ -40,6 +40,8 @@ void VGA_clear()
 
 void VGA_display_char(char c)
 {
+   IRQ_disable();
+
    if ((disp.y*disp.width) + disp.x == disp.len) {
       scroll();
       disp.y--;
@@ -54,6 +56,8 @@ void VGA_display_char(char c)
       disp.buf[(disp.y*disp.width) + disp.x] = 0x0f00 | c;
       disp.x++;
    }
+
+   IRQ_enable();
 }
 
 void VGA_display_str(const char *str)

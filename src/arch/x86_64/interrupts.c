@@ -171,21 +171,21 @@ void IRQ_set_handler(int irq, irq_handler_t handler, void *arg)
 
 void IRQ_enable()
 {
+   // This is not thread safe at all
    if (!atomic_get(&irq_semaphore))
       return;
 
    atomic_sub(&irq_semaphore, 1);
    if (!atomic_get(&irq_semaphore))
       STI;
-   printk("%d\n", atomic_get(&irq_semaphore));
 }
 
 void IRQ_disable()
 {
+   // This is not thread safe at all
    if (!atomic_get(&irq_semaphore))
       CLI;
    atomic_add(&irq_semaphore, 1);
-   printk("%d\n", atomic_get(&irq_semaphore));
 }
 
 void IRQ_init()
@@ -195,5 +195,6 @@ void IRQ_init()
    PIC_init();
    IDT_init();
 
+   irq_semaphore = 0;
    STI;
 }
