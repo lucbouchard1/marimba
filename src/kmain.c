@@ -19,6 +19,7 @@ void kmain(void)
    struct KeyboardDevice *kdev;   
    //int counter, i;
    //long delay;
+
    HW_init();
    VGA_clear();
    IRQ_init();

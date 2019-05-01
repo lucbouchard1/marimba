@@ -2,6 +2,7 @@
 #include "../../printk.h"
 #include "../../string.h"
 #include "../../io.h"
+#include "../../atomic.h"
 
 extern void IDT_init();
 
@@ -32,6 +33,7 @@ static struct IRQHandler {
    irq_handler_t handler;
    void *arg;
 } handlers[256];
+static atomic_t irq_semaphore;
 
 void PIC_init()
 {
@@ -128,6 +130,8 @@ void IRQ_end_of_interrupt(unsigned char irq)
 
 void IRQ_generic_isr(uint32_t irq)
 {
+   atomic_add(&irq_semaphore, 1); /* Interrupts are disabled by hardware in handler */
+
    if (handlers[irq].handler)
       handlers[irq].handler(irq, 0, handlers[irq].arg);
    else
@@ -135,10 +139,14 @@ void IRQ_generic_isr(uint32_t irq)
 
    if (irq >= PIC_MASTER_REMAP_BASE && irq <= (PIC_MASTER_REMAP_BASE + 0x2F))
       PIC_sendEOI(irq - PIC_MASTER_REMAP_BASE);
+
+   atomic_sub(&irq_semaphore, 1);;
 }
 
 void IRQ_generic_isr_error(uint32_t irq, uint32_t err)
 {
+   atomic_add(&irq_semaphore, 1); /* Interrupts are disabled by hardware in handler */
+
    if (handlers[irq].handler)
       handlers[irq].handler(irq, err, handlers[irq].arg);
    else
@@ -146,6 +154,8 @@ void IRQ_generic_isr_error(uint32_t irq, uint32_t err)
 
    if (irq >= PIC_MASTER_REMAP_BASE && irq <= (PIC_MASTER_REMAP_BASE + 0x2F))
       PIC_sendEOI(irq - PIC_MASTER_REMAP_BASE);
+
+   atomic_sub(&irq_semaphore, 1);
 }
 
 void IRQ_set_handler(int irq, irq_handler_t handler, void *arg)
@@ -157,6 +167,25 @@ void IRQ_set_handler(int irq, irq_handler_t handler, void *arg)
 
    handlers[irq].handler = handler;
    handlers[irq].arg = arg;
+}
+
+void IRQ_enable()
+{
+   if (!atomic_get(&irq_semaphore))
+      return;
+
+   atomic_sub(&irq_semaphore, 1);
+   if (!atomic_get(&irq_semaphore))
+      STI;
+   printk("%d\n", atomic_get(&irq_semaphore));
+}
+
+void IRQ_disable()
+{
+   if (!atomic_get(&irq_semaphore))
+      CLI;
+   atomic_add(&irq_semaphore, 1);
+   printk("%d\n", atomic_get(&irq_semaphore));
 }
 
 void IRQ_init()
