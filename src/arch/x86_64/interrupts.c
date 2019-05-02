@@ -188,7 +188,7 @@ void IRQ_disable()
    atomic_add(&irq_semaphore, 1);
 }
 
-void IRQ_init()
+void IRQ_x86_64_init()
 {
    memset(handlers, 0, sizeof(struct IRQHandler)*256);
 

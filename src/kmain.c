@@ -17,18 +17,15 @@ void keyboard_isr(int irq, int err, void *arg)
 
 void kmain(void)
 {
-   struct KeyboardDevice *kdev;   
-   struct SerialDevice *sdev;   
+   struct KeyboardDevice *kdev;
    //int counter, i;
    //long delay;
 
-   HW_init();
    VGA_clear();
-   IRQ_init();
+   HW_init();
 
-   sdev = init_x86_serial();
-   SER_write_str(sdev, "Hello World\n");
-   SER_write_str(sdev, "My name is luc :)\n");
+   SER_write_str(main_serial_dev, "Hello World\n");
+   SER_write_str(main_serial_dev, "My name is luc :)\n");
 
    kdev = init_ps2(1);
    IRQ_set_handler(0x21, keyboard_isr, kdev);

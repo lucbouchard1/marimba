@@ -1,8 +1,7 @@
-#include "x86.h"
 #include "../../io.h"
 #include "../../interrupts.h"
 
-#define OUTPUT_BUFF_SIZE 128
+#define OUTPUT_BUFF_SIZE 1024
 #define BUFF_POS(pos) (pos % OUTPUT_BUFF_SIZE)
 
 #define COM1_PORT 0x3F8

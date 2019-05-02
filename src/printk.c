@@ -2,7 +2,21 @@
 #include <stdint.h>
 
 #include "printk.h"
+#include "io.h"
 #include "vga.h"
+#include "drivers/serial/serial.h"
+
+void display_char(char c)
+{
+   VGA_display_char(c);
+   SER_write_char(main_serial_dev, c);
+}
+
+void display_str(const char *c)
+{
+   VGA_display_str(c);
+   SER_write_str(main_serial_dev, c);
+}
 
 #define HANDLE_FORMAT_SPECIFIER(arg, type, specifier) \
 do {                                  \
@@ -34,7 +48,7 @@ if (!d) {                             \
 }                                     \
 for (; d; d /= 10, cur--)             \
    *cur = (d % 10) + '0';             \
-VGA_display_str(cur + 1);             \
+display_str(cur + 1);                 \
 } while (0)
 
 #define DISP_UNSIGNED_VAL_HEX(d, bc) do { \
@@ -52,12 +66,12 @@ for (; d; d /= 16, cur--) {           \
    else                               \
       *cur = (digit - 10) + bc ;      \
 }                                     \
-VGA_display_str(cur + 1);             \
+display_str(cur + 1);                 \
 } while (0)
 
 #define DISP_SIGNED_VAL_DEC(d, type) do { \
 if (d < 0) {                          \
-   VGA_display_char('-');             \
+   display_char('-');                 \
    d *= -1;                           \
 }                                     \
 print_u##type(d);                     \
@@ -95,17 +109,17 @@ int printk(const char *fmt, ...)
          {
             case 's':
                str_arg = va_arg(args, const char *);
-               VGA_display_str(str_arg);
+               display_str(str_arg);
                break;
 
             case 'c':
                i_arg = va_arg(args, int);
-               VGA_display_char(i_arg);
+               display_char(i_arg);
                break;
 
             case 'p':
                ptr_arg = va_arg(args, void *);
-               VGA_display_str("0x");
+               display_str("0x");
                print_uint64_t_hex((uint64_t)ptr_arg, 'a');
                break;
 
@@ -136,7 +150,7 @@ int printk(const char *fmt, ...)
                break;
 
             case '%':
-               VGA_display_char('%');               
+               display_char('%');               
                break;
 
             default:
@@ -144,7 +158,7 @@ int printk(const char *fmt, ...)
          }
          cur++;
       } else {
-         VGA_display_char(*cur);
+         display_char(*cur);
       }
    }
 

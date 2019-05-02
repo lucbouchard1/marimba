@@ -1,6 +1,7 @@
 #include <stdint.h>
 #include "../../string.h"
-
+#include "../../io.h"
+#include "../../interrupts.h"
 #include "../../hw_init.h"
 
 #define GDT_LENGTH 3
@@ -12,6 +13,8 @@ extern void *stack1_top;
 extern void *stack2_top;
 extern void *stack3_top;
 extern void *stack4_top;
+
+struct SerialDevice *main_serial_dev;
 
 struct TSS {
    uint32_t rsvd1;
@@ -113,4 +116,6 @@ void init_gdt()
 void HW_init()
 {
    init_gdt();
+   IRQ_x86_64_init();
+   main_serial_dev = init_x86_serial();
 }

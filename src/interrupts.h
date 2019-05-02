@@ -3,7 +3,6 @@
 
 #include <stdint.h>
 
-void IRQ_init();
 void IRQ_set_mask(unsigned char irq);
 void IRQ_clear_mask(unsigned char irq);
 void IRQ_end_of_interrupt(unsigned char irq);
