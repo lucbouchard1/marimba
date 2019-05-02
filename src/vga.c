@@ -2,6 +2,7 @@
 
 #include "vga.h"
 #include "string.h"
+#include "interrupts.h"
 
 #define X86_VGA_ADDR 0xb8000
 
