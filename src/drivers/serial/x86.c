@@ -2,7 +2,7 @@
 #include "../../interrupts.h"
 
 #define OUTPUT_BUFF_SIZE 1024
-#define BUFF_POS(pos) (pos % OUTPUT_BUFF_SIZE)
+#define BUFF_POS(pos) ((pos == -1 ? OUTPUT_BUFF_SIZE-1 : pos) % OUTPUT_BUFF_SIZE)
 
 #define COM1_PORT 0x3F8
 #define COM2_PORT 0x2F8
