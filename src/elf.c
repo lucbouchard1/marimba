@@ -14,17 +14,29 @@ struct ELFSectionHeader {
    size_t section_entsize;
 } __attribute__((packed));
 
-int ELF_parse_section_headers(struct KernelELFInfo *elf, void *start,
+int ELF_parse_section_headers(struct SystemMMap *mmap, void *start,
       unsigned int num_headers, unsigned int str_table_index)
 {
    struct ELFSectionHeader *headers = (struct ELFSectionHeader *)start;
    const char *str_table;
    int i;
 
+   if (num_headers > MAX_KERNEL_SECTIONS) {
+      printk("error: max kernel sections exceeded in elf file\n");
+      return -1;
+   }
+
    str_table = (const char *)headers[str_table_index].section_addr;
 
-   for (i = 0; i < num_headers; i++)
-      printk("%s\n", &str_table[headers[i].sym_str_table_idx]);
+   mmap->num_kernel_sects = 0;
+   for (i = 0; i < num_headers; i++) {
+      if (headers[i].section_type == 0) /* entry unused */
+         continue;
+      mmap->kernel_sects[mmap->num_kernel_sects].base = headers[i].section_addr;
+      mmap->kernel_sects[mmap->num_kernel_sects].length = headers[i].section_size;
+      mmap->kernel_sects[mmap->num_kernel_sects].section_name = &str_table[headers[i].sym_str_table_idx];
+      mmap->num_kernel_sects++;
+   }
 
    return 0;
 }

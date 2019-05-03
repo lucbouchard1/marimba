@@ -28,10 +28,15 @@ void kmain(uint32_t mb_magic, uint32_t mb_addr)
 
    MB_parse_multiboot(&map, mb_magic, mb_addr);
 
-   printk("Free MMAP:\n");
+   printk("Ram MMAP:\n");
    for (i = 0; i < map.num_mmap; i++)
       printk("Addr: %p   Len: %ld\n",
-            map.free_entries[i].base, map.free_entries[i].length);
+            map.avail_ram[i].base, map.avail_ram[i].length);
+
+   printk("\nKernel Sections:\n");
+   for (i = 0; i < map.num_kernel_sects; i++)
+      printk("Addr: %p   Len: %ld   Name: %s\n", map.kernel_sects[i].base,
+            map.kernel_sects[i].length, map.kernel_sects[i].section_name);
 
    HW_init();
 

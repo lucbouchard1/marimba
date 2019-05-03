@@ -3,11 +3,7 @@
 
 #include "types.h"
 
-struct KernelELFInfo {
-   int hello;
-};
-
-int ELF_parse_section_headers(struct KernelELFInfo *elf, void *start,
+int ELF_parse_section_headers(struct SystemMMap *mmap, void *start,
       unsigned int num_headers, unsigned int str_table_index);
 
 #endif

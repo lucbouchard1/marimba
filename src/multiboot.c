@@ -70,8 +70,8 @@ static int parse_mmap(struct MultibootMMapTag *mmap, struct SystemMMap *dest)
          return -1;
       }
 
-      dest->free_entries[dest->num_mmap].base = (void *)curr->addr;
-      dest->free_entries[dest->num_mmap].length = curr->len;
+      dest->avail_ram[dest->num_mmap].base = (void *)curr->addr;
+      dest->avail_ram[dest->num_mmap].length = curr->len;
       dest->num_mmap++;
    }
 
@@ -80,8 +80,7 @@ static int parse_mmap(struct MultibootMMapTag *mmap, struct SystemMMap *dest)
 
 static int parse_elf(struct MultibootELFTag *elf, struct SystemMMap *dest)
 {
-   ELF_parse_section_headers(0, elf->sections, elf->num, elf->shndx);
-   return 0;
+   return ELF_parse_section_headers(dest, elf->sections, elf->num, elf->shndx);
 }
 
 int MB_parse_multiboot(struct SystemMMap *dest, uint32_t mb_magic, uint32_t mb_addr)
