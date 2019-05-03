@@ -9,13 +9,15 @@
 void display_char(char c)
 {
    VGA_display_char(c);
-   SER_write_char(main_serial_dev, c);
+   if (main_serial_dev)
+      SER_write_char(main_serial_dev, c);
 }
 
 void display_str(const char *c)
 {
    VGA_display_str(c);
-   SER_write_str(main_serial_dev, c);
+   if (main_serial_dev)
+      SER_write_str(main_serial_dev, c);
 }
 
 #define HANDLE_FORMAT_SPECIFIER(arg, type, specifier) \

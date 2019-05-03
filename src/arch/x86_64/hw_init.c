@@ -14,7 +14,7 @@ extern void *stack2_top;
 extern void *stack3_top;
 extern void *stack4_top;
 
-struct SerialDevice *main_serial_dev;
+struct SerialDevice *main_serial_dev = 0;
 
 struct TSS {
    uint32_t rsvd1;

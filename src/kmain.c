@@ -3,6 +3,7 @@
 #include "io.h"
 #include "interrupts.h"
 #include "hw_init.h"
+#include "multiboot.h"
 #include "drivers/keyboard/keyboard.h"
 #include "drivers/serial/serial.h"
 
@@ -22,13 +23,10 @@ void kmain(uint32_t mb_magic, uint32_t mb_addr)
    //long delay;
 
    VGA_clear();
+
+   MB_parse_multiboot(mb_magic, mb_addr);
+
    HW_init();
-
-   printk("Multiboot magic: %x\n", mb_magic);
-   printk("Multiboot addr: %x\n", mb_addr);
-
-   SER_write_str(main_serial_dev, "Hello World\n");
-   SER_write_str(main_serial_dev, "My name is luc :)\n");
 
    kdev = init_ps2(1);
    IRQ_set_handler(0x21, keyboard_isr, kdev);
