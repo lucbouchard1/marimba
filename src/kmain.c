@@ -7,6 +7,8 @@
 #include "drivers/keyboard/keyboard.h"
 #include "drivers/serial/serial.h"
 
+static struct SystemMMap map;
+
 void keyboard_isr(int irq, int err, void *arg)
 {
    struct KeyboardDevice *dev = (struct KeyboardDevice *)arg;
@@ -19,12 +21,17 @@ void keyboard_isr(int irq, int err, void *arg)
 void kmain(uint32_t mb_magic, uint32_t mb_addr)
 {
    struct KeyboardDevice *kdev;
-   //int counter, i;
+   int i;
    //long delay;
 
    VGA_clear();
 
-   MB_parse_multiboot(mb_magic, mb_addr);
+   MB_parse_multiboot(&map, mb_magic, mb_addr);
+
+   printk("Free MMAP:\n");
+   for (i = 0; i < map.num_mmap; i++)
+      printk("Addr: %p   Len: %ld\n",
+            map.free_entries[i].base, map.free_entries[i].length);
 
    HW_init();
 
