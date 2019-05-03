@@ -4,6 +4,7 @@
 #include <stdint.h>
 
 typedef unsigned long size_t;
+typedef unsigned long offset_t;
 
 #define MAX_MMAP_ENTRIES 32
 

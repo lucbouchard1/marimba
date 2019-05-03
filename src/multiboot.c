@@ -1,5 +1,6 @@
 #include "multiboot.h"
 #include "printk.h"
+#include "elf.h"
 
 #define MULTIBOOT2_BOOTLOADER_MAGIC 0x36d76289
 
@@ -42,10 +43,19 @@ struct MultibootMMapTag {
    struct MultibootMMapEntry entries[1];
 } __attribute__((packed));
 
+struct MultibootELFTag {
+   uint32_t type;
+   uint32_t size;
+   uint32_t num;
+   uint32_t entsize;
+   uint32_t shndx;
+   char sections[1];
+} __attribute__((packed));
+
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wint-to-pointer-cast"
 
-int MB_parse_mmap(struct MultibootMMapTag *mmap, struct SystemMMap *dest)
+static int parse_mmap(struct MultibootMMapTag *mmap, struct SystemMMap *dest)
 {
    struct MultibootMMapEntry *curr = mmap->entries;
    int entries = mmap->size/mmap->entry_size, i;
@@ -68,6 +78,12 @@ int MB_parse_mmap(struct MultibootMMapTag *mmap, struct SystemMMap *dest)
    return 0;
 }
 
+static int parse_elf(struct MultibootELFTag *elf, struct SystemMMap *dest)
+{
+   ELF_parse_section_headers(0, elf->sections, elf->num, elf->shndx);
+   return 0;
+}
+
 int MB_parse_multiboot(struct SystemMMap *dest, uint32_t mb_magic, uint32_t mb_addr)
 {
    struct MultibootTag *tag = (struct MultibootTag *) (mb_addr + 8);
@@ -81,11 +97,13 @@ int MB_parse_multiboot(struct SystemMMap *dest, uint32_t mb_magic, uint32_t mb_a
          tag = (struct MultibootTag *) ((uint8_t *) tag + ((tag->size + 7) & ~7))) {
       switch (tag->type) {
          case MULTIBOOT_TAG_TYPE_MMAP:
-            if (MB_parse_mmap((struct MultibootMMapTag *)tag, dest) < 0)
+            if (parse_mmap((struct MultibootMMapTag *)tag, dest) < 0)
                return -1;
             break;
 
          case MULTIBOOT_TAG_TYPE_ELF_SECTIONS:
+            if (parse_elf((struct MultibootELFTag *)tag, dest) < 0)
+               return -1;
             break;
 
          default:
