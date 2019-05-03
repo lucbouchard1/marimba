@@ -52,16 +52,17 @@ int MB_parse_mmap(struct MultibootMMapTag *mmap, struct SystemMMap *dest)
 
    dest->num_mmap = 0;
    for (i = 0; i < entries; i++, curr++) {
-      if (curr->type == MULTIBOOT_MEMORY_AVAILABLE) {
-         if (dest->num_mmap == MAX_MMAP_ENTRIES) {
-            printk("error: max mmap entries exceeded in multiboot info\n");
-            return -1;
-         }
-         dest->free_entries[dest->num_mmap].base = (void *)curr->addr;
-         dest->free_entries[dest->num_mmap].length = curr->len;
-         dest->num_mmap++;
-      } else
-         printk("Section: addr: 0x%lx   len: 0x%lx    type: %d\n", curr->addr, curr->len, curr->type);
+      if (curr->type != MULTIBOOT_MEMORY_AVAILABLE)
+         continue;
+
+      if (dest->num_mmap == MAX_MMAP_ENTRIES) {
+         printk("error: max mmap entries exceeded in multiboot info\n");
+         return -1;
+      }
+
+      dest->free_entries[dest->num_mmap].base = (void *)curr->addr;
+      dest->free_entries[dest->num_mmap].length = curr->len;
+      dest->num_mmap++;
    }
 
    return 0;
@@ -69,18 +70,22 @@ int MB_parse_mmap(struct MultibootMMapTag *mmap, struct SystemMMap *dest)
 
 int MB_parse_multiboot(struct SystemMMap *dest, uint32_t mb_magic, uint32_t mb_addr)
 {
-   struct MultibootTag *tag;
+   struct MultibootTag *tag = (struct MultibootTag *) (mb_addr + 8);
 
    if (mb_magic != MULTIBOOT2_BOOTLOADER_MAGIC) {
       printk("error: OS not booted by multiboot complient bootloader\n");
       return -1;
    }
 
-   for (tag = (struct MultibootTag *) (mb_addr + 8); tag->type != MULTIBOOT_TAG_TYPE_END;
+   for (; tag->type != MULTIBOOT_TAG_TYPE_END;
          tag = (struct MultibootTag *) ((uint8_t *) tag + ((tag->size + 7) & ~7))) {
       switch (tag->type) {
          case MULTIBOOT_TAG_TYPE_MMAP:
-            MB_parse_mmap((struct MultibootMMapTag *)tag, dest);
+            if (MB_parse_mmap((struct MultibootMMapTag *)tag, dest) < 0)
+               return -1;
+            break;
+
+         case MULTIBOOT_TAG_TYPE_ELF_SECTIONS:
             break;
 
          default:
