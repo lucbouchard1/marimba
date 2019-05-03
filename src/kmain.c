@@ -15,7 +15,7 @@ void keyboard_isr(int irq, int err, void *arg)
    printk("%c", c);
 }
 
-void kmain(void)
+void kmain(uint32_t mb_magic, uint32_t mb_addr)
 {
    struct KeyboardDevice *kdev;
    //int counter, i;
@@ -23,6 +23,9 @@ void kmain(void)
 
    VGA_clear();
    HW_init();
+
+   printk("Multiboot magic: %x\n", mb_magic);
+   printk("Multiboot addr: %x\n", mb_addr);
 
    SER_write_str(main_serial_dev, "Hello World\n");
    SER_write_str(main_serial_dev, "My name is luc :)\n");

@@ -8,6 +8,11 @@ start:
    ; Initialize the stack
    mov esp, stack0_top
 
+   ; IMPORTANT: Save multiboot information so it can be passed to kmain
+   ; IMPORTANT: edi and esi cannot be clobbered before kmain call
+   mov edi, eax ; Multiboot magic number
+   mov esi, ebx ; Multiboot info addr
+
    call check_multiboot
    call check_cpuid
    call check_long_mode

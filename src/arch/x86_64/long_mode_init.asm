@@ -12,6 +12,7 @@ long_mode_start:
    mov fs, ax
    mov gs, ax
 
+   ; Multiboot data stored in registers according to C calling convention
    call kmain
 
    ; print `OKAY` to screen
