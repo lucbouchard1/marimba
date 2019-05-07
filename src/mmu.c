@@ -51,7 +51,7 @@ int MMU_init(struct SystemMMap *map)
       prev = &excluded[i];
    }
 
-   /* Round excluded sections to page boundries */
+   /* Round excluded sections to page boundaries */
    for (curr = ex_head; curr; curr = curr->next) {
       /* Round down base to page offset */
       new_base = (void *)((uint64_t)curr->s.base - ((uint64_t)curr->s.base % MMU_PAGE_SIZE));
