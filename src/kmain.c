@@ -3,6 +3,7 @@
 #include "io.h"
 #include "interrupts.h"
 #include "hw_init.h"
+#include "mmu.h"
 #include "multiboot.h"
 #include "drivers/keyboard/keyboard.h"
 #include "drivers/serial/serial.h"
@@ -25,6 +26,7 @@ void kmain(uint32_t mb_magic, uint32_t mb_addr)
    //long delay;
 
    VGA_clear();
+   HW_init();
 
    MB_parse_multiboot(&map, mb_magic, mb_addr);
 
@@ -35,10 +37,12 @@ void kmain(uint32_t mb_magic, uint32_t mb_addr)
 
    printk("\nKernel Sections:\n");
    for (i = 0; i < map.num_kernel_sects; i++)
-      printk("Addr: %p   Len: %ld   Name: %s\n", map.kernel_sects[i].base,
+      printk("Addr: %p   Len: 0x%lx   Name: %s\n", map.kernel_sects[i].base,
             map.kernel_sects[i].length, map.kernel_sects[i].section_name);
 
-   HW_init();
+   printk("\n Excluded Sections:\n");
+   MMU_init(&map);
+
 
    kdev = init_ps2(1);
    IRQ_set_handler(0x21, keyboard_isr, kdev);
