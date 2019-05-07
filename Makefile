@@ -18,7 +18,7 @@ ASM_OBJ = $(patsubst src/arch/$(ARCH)/%.asm, \
 
 TESTS_C_SRC := $(wildcard tests/*.c)
 TESTS_C_OBJ := $(patsubst tests/%.c, tests/%.o, $(TESTS_C_SRC)) \
-		tests/string.o
+		tests/string.o tests/utils.o
 TESTS_EXECUTABLE = run_tests
 
 .PHONY: run clean test arch
