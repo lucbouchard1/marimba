@@ -1,5 +1,6 @@
 #include "elf.h"
 #include "printk.h"
+#include "utils.h"
 
 struct ELFSectionHeader {
    uint32_t sym_str_table_idx;
@@ -37,6 +38,7 @@ int ELF_parse_section_headers(struct SystemMMap *mmap, void *start,
       mmap->kernel_sects[mmap->num_kernel_sects].section_name = &str_table[headers[i].sym_str_table_idx];
       mmap->num_kernel_sects++;
    }
+   sort_kernel_section_array(mmap->kernel_sects, mmap->num_kernel_sects);
 
    return 0;
 }

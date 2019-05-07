@@ -13,4 +13,7 @@ void sort(void *arr, size_t len, size_t el_len,
       int (*cmp)(void *arg1, void *arg2),
       void (*swp)(void *arg1, void *arg2));
 
+void sort_kernel_section_array(struct KernelSection *arr, size_t len);
+void sort_mmap_entry_array(struct MMapEntry *arr, size_t len);
+
 #endif

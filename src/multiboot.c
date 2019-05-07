@@ -1,6 +1,7 @@
 #include "multiboot.h"
 #include "printk.h"
 #include "elf.h"
+#include "utils.h"
 
 #define MULTIBOOT2_BOOTLOADER_MAGIC 0x36d76289
 
@@ -74,6 +75,7 @@ static int parse_mmap(struct MultibootMMapTag *mmap, struct SystemMMap *dest)
       dest->avail_ram[dest->num_mmap].length = curr->len;
       dest->num_mmap++;
    }
+   sort_mmap_entry_array(dest->avail_ram, dest->num_mmap);
 
    return 0;
 }

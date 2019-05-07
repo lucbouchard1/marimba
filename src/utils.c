@@ -23,3 +23,63 @@ void sort(void *arr, size_t num_els, size_t el_len,
          swp(curr, min);
    }
 }
+
+int kernel_mmap_cmp(void *rarg1, void *rarg2)
+{
+   struct KernelSection *arg1 = (struct KernelSection *)rarg1;
+   struct KernelSection *arg2 = (struct KernelSection *)rarg2;
+
+   if (arg1->base > arg2->base)
+      return -1;
+   else if (arg2->base > arg1->base)
+      return 1;
+   else
+      return 0;
+}
+
+void kernel_mmap_swp(void *rarg1, void *rarg2)
+{
+   struct KernelSection *arg1 = (struct KernelSection *)rarg1;
+   struct KernelSection *arg2 = (struct KernelSection *)rarg2;
+   struct KernelSection temp;
+
+   temp = *arg2;
+   *arg2 = *arg1;
+   *arg1 = temp;
+}
+
+void sort_kernel_section_array(struct KernelSection *arr, size_t len)
+{
+   sort(arr, len, sizeof(struct KernelSection),
+         kernel_mmap_cmp, kernel_mmap_swp);
+}
+
+int mmap_entry_cmp(void *rarg1, void *rarg2)
+{
+   struct KernelSection *arg1 = (struct KernelSection *)rarg1;
+   struct KernelSection *arg2 = (struct KernelSection *)rarg2;
+
+   if (arg1->base > arg2->base)
+      return -1;
+   else if (arg2->base > arg1->base)
+      return 1;
+   else
+      return 0;
+}
+
+void mmap_entry_swp(void *rarg1, void *rarg2)
+{
+   struct KernelSection *arg1 = (struct KernelSection *)rarg1;
+   struct KernelSection *arg2 = (struct KernelSection *)rarg2;
+   struct KernelSection temp;
+
+   temp = *arg2;
+   *arg2 = *arg1;
+   *arg1 = temp;
+}
+
+void sort_mmap_entry_array(struct MMapEntry *arr, size_t len)
+{
+   sort(arr, len, sizeof(struct MMapEntry),
+         mmap_entry_cmp, mmap_entry_swp);
+}

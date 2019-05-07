@@ -49,6 +49,17 @@ int MMU_init(struct SystemMMap *map)
       prev = &excluded[i];
    }
 
+   /* Round excluded sections to page boundries */
+   ROUND down the base address, round up the length. Shouldnt cause any issues
+   for (curr = ex_head->next, prev = ex_head; curr; prev = curr, curr = curr->next) {
+      if (prev->s.base + prev->s.len < curr->s.base)
+         continue;
+
+      prev->s.len = max(prev->s.len, (curr->s.base + curr->s.len) - prev->s.base);
+      prev->next = curr->next;
+      curr = prev;
+   }
+
    /* Reduce overlapping kernel segments into contiguous segments */
    for (curr = ex_head->next, prev = ex_head; curr; prev = curr, curr = curr->next) {
       if (prev->s.base + prev->s.len < curr->s.base)
