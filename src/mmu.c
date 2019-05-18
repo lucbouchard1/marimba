@@ -102,6 +102,7 @@ static void mmu_compute_free_segments(struct MMUState *mmu, struct SystemMMap *m
       curr->s.base = map->avail_ram[i].base;
       curr->s.len = map->avail_ram[i].length;
       curr->s.end = curr->s.base + curr->s.len;
+      curr->next = 0;
       if (prev)
          prev->next = curr;
       prev = curr;
@@ -109,8 +110,7 @@ static void mmu_compute_free_segments(struct MMUState *mmu, struct SystemMMap *m
 
    /* Remove excluded sections from free segments array */
    prev = 0;
-   for (fcurr = mmu->free_head, ecurr = ex_head; 
-         fcurr && ecurr; ) {
+   for (fcurr = mmu->free_head, ecurr = ex_head; fcurr && ecurr; ) {
       if (fcurr->s.base < ecurr->s.base && fcurr->s.end > ecurr->s.base) {
          fcurr->s.len = ecurr->s.base - fcurr->s.base;
          if (fcurr->s.end > ecurr->s.end) {
@@ -137,6 +137,7 @@ static void mmu_compute_free_segments(struct MMUState *mmu, struct SystemMMap *m
             ecurr = ecurr->next;
          }
       } else {
+         prev = fcurr;
          fcurr = fcurr->next;
       }
    }
@@ -165,6 +166,22 @@ int MMU_init(struct SystemMMap *map)
    printk("\n Free Sections:\n");
    for (curr = mmu_state.free_head; curr; curr = curr->next)
       printk("Base: %p   End: %p   Len: 0x%lx\n", curr->s.base, curr->s.end, curr->s.len);
+
+   return 0;
+}
+
+void *MMU_pf_alloc()
+{
+   void *ret;
+
+   if (mmu_state.free_head) {
+      ret = mmu_state.free_head->s.base;
+      mmu_state.free_head->s.base += MMU_PAGE_SIZE;
+      mmu_state.free_head->s.len -= MMU_PAGE_SIZE;
+      if (!mmu_state.free_head->s.len)
+         mmu_state.free_head = mmu_state.free_head->next;
+      return ret;
+   }
 
    return 0;
 }
