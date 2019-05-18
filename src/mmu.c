@@ -32,20 +32,17 @@ int max(int i1, int i2)
    return i2;
 }
 
-int MMU_init(struct SystemMMap *map)
+/**
+ * Converts the KernelSection entries in the SystemMMap into a
+ * page-aligned linked list of used memory regions. Returns
+ * head pointer to the linked list.
+ */
+static struct SegmentList *mmu_compute_excluded(struct SystemMMap *map,
+      struct SegmentList *excluded)
 {
-   struct SegmentList excluded[MAX_EXCLUDE_SEGMENTS];
    struct SegmentList *ex_head, *prev, *curr;
-   struct SegmentList *fcurr, *ecurr;
    uint8_t *new_base;
    int i;
-
-   memset(&mmu_state, 0, sizeof(struct MMUState));
-
-   if (map->num_kernel_sects > MAX_EXCLUDE_SEGMENTS) {
-      printk("error: too many kernel segments for MMU\n");
-      return -1;
-   }
 
    /* Copy kernel segments into excluded segments array */
    ex_head = &excluded[0];
@@ -84,10 +81,24 @@ int MMU_init(struct SystemMMap *map)
       curr = prev;
    }
 
+   return ex_head;
+}
+
+/**
+ * Inverts the linked list of excluded regions into a linked list of
+ * free memory regions. Uses the MMap entries in the SystemMMap
+ */
+static void mmu_compute_free_segments(struct MMUState *mmu, struct SystemMMap *map,
+      struct SegmentList *ex_head)
+{
+   struct SegmentList *prev, *curr;
+   struct SegmentList *fcurr, *ecurr;
+   int i;
+
    /* Copy RAM MMap into free_segments array */
-   mmu_state.free_head = mmu_state.free_segments;
+   mmu->free_head = mmu->free_segments;
    for (i = 0, prev = 0; i < map->num_mmap; i++) {
-      curr = &mmu_state.free_segments[i];
+      curr = &mmu->free_segments[i];
       curr->s.base = map->avail_ram[i].base;
       curr->s.len = map->avail_ram[i].length;
       curr->s.end = curr->s.base + curr->s.len;
@@ -98,16 +109,16 @@ int MMU_init(struct SystemMMap *map)
 
    /* Remove excluded sections from free segments array */
    prev = 0;
-   for (fcurr = mmu_state.free_head, ecurr = ex_head; 
+   for (fcurr = mmu->free_head, ecurr = ex_head; 
          fcurr && ecurr; ) {
       if (fcurr->s.base < ecurr->s.base && fcurr->s.end > ecurr->s.base) {
          fcurr->s.len = ecurr->s.base - fcurr->s.base;
          if (fcurr->s.end > ecurr->s.end) {
             /* Insert new free entry */
-            mmu_state.free_segments[i].s.base = ecurr->s.end;
-            mmu_state.free_segments[i].s.len = fcurr->s.end - ecurr->s.end;
-            mmu_state.free_segments[i].next = fcurr->next;
-            fcurr->next = &mmu_state.free_segments[i];
+            mmu->free_segments[i].s.base = ecurr->s.end;
+            mmu->free_segments[i].s.len = fcurr->s.end - ecurr->s.end;
+            mmu->free_segments[i].next = fcurr->next;
+            fcurr->next = &mmu->free_segments[i];
             i++;
             ecurr = ecurr->next;
          }
@@ -119,7 +130,7 @@ int MMU_init(struct SystemMMap *map)
             if (prev)
                prev->next = fcurr->next;
             else
-               mmu_state.free_head = fcurr->next;
+               mmu->free_head = fcurr->next;
          } else {
             fcurr->s.len = fcurr->s.end - ecurr->s.end;
             fcurr->s.base = ecurr->s.end;
@@ -129,6 +140,23 @@ int MMU_init(struct SystemMMap *map)
          fcurr = fcurr->next;
       }
    }
+}
+
+int MMU_init(struct SystemMMap *map)
+{
+   struct SegmentList excluded[MAX_EXCLUDE_SEGMENTS];
+   struct SegmentList *ex_head, *curr;
+
+   memset(&mmu_state, 0, sizeof(struct MMUState));
+
+   if (map->num_kernel_sects > MAX_EXCLUDE_SEGMENTS) {
+      printk("error: too many kernel segments for MMU\n");
+      return -1;
+   }
+
+   ex_head = mmu_compute_excluded(map, excluded);
+
+   mmu_compute_free_segments(&mmu_state, map, ex_head);
 
    printk("\n Excluded Sections:\n");
    for (curr = ex_head; curr; curr = curr->next)
