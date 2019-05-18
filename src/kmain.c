@@ -40,7 +40,7 @@ void kmain(uint32_t mb_magic, uint32_t mb_addr)
       printk("Addr: %p   Len: 0x%lx   Name: %s\n", map.kernel_sects[i].base,
             map.kernel_sects[i].length, map.kernel_sects[i].section_name);
 
-   printk("\n Excluded Sections:\n");
+   printk("\n Free Sections:\n");
    MMU_init(&map);
 
 
