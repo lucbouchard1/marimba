@@ -32,7 +32,7 @@ void kmain(uint32_t mb_magic, uint32_t mb_addr)
 
    printk("Ram MMAP:\n");
    for (i = 0; i < map.num_mmap; i++)
-      printk("Addr: %p   Len: %ld\n",
+      printk("Addr: %p   Len: %lx\n",
             map.avail_ram[i].base, map.avail_ram[i].length);
 
    printk("\nKernel Sections:\n");
@@ -40,7 +40,6 @@ void kmain(uint32_t mb_magic, uint32_t mb_addr)
       printk("Addr: %p   Len: 0x%lx   Name: %s\n", map.kernel_sects[i].base,
             map.kernel_sects[i].length, map.kernel_sects[i].section_name);
 
-   printk("\n Free Sections:\n");
    MMU_init(&map);
 
 

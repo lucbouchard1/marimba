@@ -9,6 +9,7 @@
 
 struct Segment {
    uint8_t *base;
+   uint8_t *end;
    size_t len;
 };
 
@@ -51,6 +52,7 @@ int MMU_init(struct SystemMMap *map)
    for (i = 0, prev = 0; i < map->num_kernel_sects; i++) {
       excluded[i].s.base = map->kernel_sects[i].base;
       excluded[i].s.len = map->kernel_sects[i].length;
+      excluded[i].s.end = excluded[i].s.base + excluded[i].s.len;
       excluded[i].next = 0;
       if (prev)
          prev->next = &excluded[i];
@@ -68,6 +70,7 @@ int MMU_init(struct SystemMMap *map)
          curr->s.len += MMU_PAGE_SIZE;
          curr->s.len -= (curr->s.len % MMU_PAGE_SIZE);
       }
+      curr->s.end = curr->s.base + curr->s.len;
    }
 
    /* Reduce overlapping kernel segments into contiguous segments */
@@ -76,6 +79,7 @@ int MMU_init(struct SystemMMap *map)
          continue;
 
       prev->s.len = max(prev->s.len, (curr->s.base + curr->s.len) - prev->s.base);
+      prev->s.end = prev->s.base + prev->s.len;
       prev->next = curr->next;
       curr = prev;
    }
@@ -86,6 +90,7 @@ int MMU_init(struct SystemMMap *map)
       curr = &mmu_state.free_segments[i];
       curr->s.base = map->avail_ram[i].base;
       curr->s.len = map->avail_ram[i].length;
+      curr->s.end = curr->s.base + curr->s.len;
       if (prev)
          prev->next = curr;
       prev = curr;
@@ -95,37 +100,43 @@ int MMU_init(struct SystemMMap *map)
    prev = 0;
    for (fcurr = mmu_state.free_head, ecurr = ex_head; 
          fcurr && ecurr; ) {
-      if (fcurr->s.base < ecurr->s.base && (fcurr->s.base + fcurr->s.len) > ecurr->s.base) {
+      if (fcurr->s.base < ecurr->s.base && fcurr->s.end > ecurr->s.base) {
          fcurr->s.len = ecurr->s.base - fcurr->s.base;
-         if (fcurr->s.base + fcurr->s.len > ecurr->s.base + ecurr->s.len) {
+         if (fcurr->s.end > ecurr->s.end) {
             /* Insert new free entry */
-            mmu_state.free_segments[i].s.base = ecurr->s.base + curr->s.len;
-            mmu_state.free_segments[i].s.len = ecurr->s.base + curr->s.len - (fcurr->s.base + fcurr->s.len);
+            mmu_state.free_segments[i].s.base = ecurr->s.end;
+            mmu_state.free_segments[i].s.len = fcurr->s.end - ecurr->s.end;
             mmu_state.free_segments[i].next = fcurr->next;
             fcurr->next = &mmu_state.free_segments[i];
             i++;
+            ecurr = ecurr->next;
          }
          prev = fcurr;
          fcurr = fcurr->next;
-      } else if (fcurr->s.base > ecurr->s.base && fcurr->s.base < ecurr->s.base + ecurr->s.len) {
-         if (fcurr->s.base + fcurr->s.len < ecurr->s.base + ecurr->s.len) {
+      } else if (fcurr->s.base >= ecurr->s.base && fcurr->s.base < ecurr->s.end) {
+         if (fcurr->s.end < ecurr->s.end) {
             /* Delete the free entry */
             if (prev)
                prev->next = fcurr->next;
             else
                mmu_state.free_head = fcurr->next;
          } else {
-            fcurr->s.len -= (ecurr->s.base + ecurr->s.len) - fcurr->s.base;
-            fcurr->s.base = ecurr->s.base + ecurr->s.len;
+            fcurr->s.len = fcurr->s.end - ecurr->s.end;
+            fcurr->s.base = ecurr->s.end;
+            ecurr = ecurr->next;
          }
       } else {
-         ecurr = ecurr->next;
+         fcurr = fcurr->next;
       }
    }
 
+   printk("\n Excluded Sections:\n");
+   for (curr = ex_head; curr; curr = curr->next)
+      printk("Base: %p   End: %p   Len: 0x%lx\n", curr->s.base, curr->s.end, curr->s.len);
 
+   printk("\n Free Sections:\n");
    for (curr = mmu_state.free_head; curr; curr = curr->next)
-      printk("Base: %p   Len: 0x%lx\n", curr->s.base, curr->s.len);
+      printk("Base: %p   End: %p   Len: 0x%lx\n", curr->s.base, curr->s.end, curr->s.len);
 
    return 0;
 }
