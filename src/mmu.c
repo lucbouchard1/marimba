@@ -4,8 +4,6 @@
 #include "printk.h"
 #include "string.h"
 #include "utils.h"
-#include "interrupts.h"
-#include "paging.h"
 
 #define MAX_FREE_SEGMENTS 32
 #define MAX_EXCLUDE_SEGMENTS 128
@@ -31,18 +29,13 @@ struct MMUState {
 
 static struct MMUState mmu_state;
 
-static void page_fault_handler(int irq, int err, void *arg)
-{
-
-}
-
 /**
- * Converts the KernelSection entries in the SystemMMap into a
+ * Converts the KernelSection entries in the PhysicalMMap into a
  * page-aligned linked list of used memory regions.
  * 
  * @retval Head pointer to the linked list.
  */
-static struct SegmentList *mmu_compute_excluded(struct SystemMMap *map,
+static struct SegmentList *mmu_compute_excluded(struct PhysicalMMap *map,
       struct SegmentList *excluded)
 {
    struct SegmentList *ex_head, *prev, *curr;
@@ -64,13 +57,13 @@ static struct SegmentList *mmu_compute_excluded(struct SystemMMap *map,
    /* Round excluded sections to page boundaries */
    for (curr = ex_head; curr; curr = curr->next) {
       /* Round down base to page offset */
-      new_base = (void *)((uint64_t)curr->s.base - ((uint64_t)curr->s.base % MMU_PAGE_SIZE));
+      new_base = (void *)((uint64_t)curr->s.base - ((uint64_t)curr->s.base % PAGE_SIZE));
       curr->s.len += curr->s.base - new_base;
       curr->s.base = new_base;
       /* Round up length to page size */
-      if (curr->s.len % MMU_PAGE_SIZE) {
-         curr->s.len += MMU_PAGE_SIZE;
-         curr->s.len -= (curr->s.len % MMU_PAGE_SIZE);
+      if (curr->s.len % PAGE_SIZE) {
+         curr->s.len += PAGE_SIZE;
+         curr->s.len -= (curr->s.len % PAGE_SIZE);
       }
       curr->s.end = curr->s.base + curr->s.len;
    }
@@ -91,9 +84,9 @@ static struct SegmentList *mmu_compute_excluded(struct SystemMMap *map,
 
 /**
  * Inverts the linked list of excluded regions into a linked list of
- * free memory regions. Uses the MMap entries in the SystemMMap
+ * free memory regions. Uses the MMap entries in the PhysicalMMap
  */
-static void mmu_compute_free_segments(struct MMUState *mmu, struct SystemMMap *map,
+static void mmu_compute_free_segments(struct MMUState *mmu, struct PhysicalMMap *map,
       struct SegmentList *ex_head)
 {
    struct SegmentList *prev, *curr;
@@ -118,14 +111,14 @@ static void mmu_compute_free_segments(struct MMUState *mmu, struct SystemMMap *m
    for (curr = mmu->free_segment_head, prev = NULL; curr; curr = curr->next) {
       /* Round up base to page offset */
       new_base = (uint64_t)curr->s.base;
-      if (new_base % MMU_PAGE_SIZE) {
-         new_base += MMU_PAGE_SIZE;
-         new_base -= (new_base % MMU_PAGE_SIZE);
+      if (new_base % PAGE_SIZE) {
+         new_base += PAGE_SIZE;
+         new_base -= (new_base % PAGE_SIZE);
       }
       curr->s.len = (uint64_t)curr->s.end - new_base;
       curr->s.base = (void *)new_base;
       /* Round down length to page size */
-      curr->s.len = curr->s.len - (curr->s.len % MMU_PAGE_SIZE);
+      curr->s.len = curr->s.len - (curr->s.len % PAGE_SIZE);
       curr->s.end = curr->s.base + curr->s.len;
       /* Delete free segment if it shrunk too much */
       if (curr->s.len <= 0) {
@@ -173,16 +166,16 @@ static void mmu_compute_free_segments(struct MMUState *mmu, struct SystemMMap *m
 
    /* Ignore page at address 0 so NULL checks can work in MMU code */
    if (mmu->free_segment_head->s.base == NULL) {
-      if (mmu->free_segment_head->s.len == MMU_PAGE_SIZE) {
+      if (mmu->free_segment_head->s.len == PAGE_SIZE) {
          mmu->free_segment_head = mmu->free_segment_head->next;
       } else {
-         mmu->free_segment_head->s.base += MMU_PAGE_SIZE;
-         mmu->free_segment_head->s.len -= MMU_PAGE_SIZE;
+         mmu->free_segment_head->s.base += PAGE_SIZE;
+         mmu->free_segment_head->s.len -= PAGE_SIZE;
       }
    }
 }
 
-int MMU_init(struct SystemMMap *map)
+int MMU_init(struct PhysicalMMap *map)
 {
    struct SegmentList excluded[MAX_EXCLUDE_SEGMENTS];
    struct SegmentList *ex_head;
@@ -205,8 +198,6 @@ int MMU_init(struct SystemMMap *map)
    PT_page_table_init(mmu_state.page_table);
    PT_change(mmu_state.page_table);
 
-   IRQ_set_handler(PAGE_FAULT_IRQ, page_fault_handler, &mmu_state);
-
    return 0;
 }
 
@@ -216,8 +207,8 @@ void *MMU_pf_alloc()
 
    if (mmu_state.free_segment_head) {
       ret = mmu_state.free_segment_head->s.base;
-      mmu_state.free_segment_head->s.base += MMU_PAGE_SIZE;
-      mmu_state.free_segment_head->s.len -= MMU_PAGE_SIZE;
+      mmu_state.free_segment_head->s.base += PAGE_SIZE;
+      mmu_state.free_segment_head->s.len -= PAGE_SIZE;
       if (!mmu_state.free_segment_head->s.len)
          mmu_state.free_segment_head = mmu_state.free_segment_head->next;
       return ret;

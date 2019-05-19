@@ -14,3 +14,5 @@ In this kernel, the kernel space is mapped into every page table to speed up and
 | User Space                              | 0x10 * B       |    Onward              |
 
 Note that the kernel code will be in the physical page frame region. By allocating 1 P4 entry to the physical page frames, our system can only address 512 GB.
+
+Virtual Memory Map is described in src/arch/x86_64/mmap.h

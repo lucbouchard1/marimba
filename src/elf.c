@@ -15,7 +15,7 @@ struct ELFSectionHeader {
    size_t section_entsize;
 } __attribute__((packed));
 
-int ELF_parse_section_headers(struct SystemMMap *mmap, void *start,
+int ELF_parse_section_headers(struct PhysicalMMap *mmap, void *start,
       unsigned int num_headers, unsigned int str_table_index)
 {
    struct ELFSectionHeader *headers = (struct ELFSectionHeader *)start;

@@ -3,7 +3,7 @@
 
 #include "types.h"
 
-void PT_init(struct SystemMMap *map);
+void PT_init(struct PhysicalMMap *map);
 void PT_page_table_init(void *addr);
 
 #if ARCH == x86_64

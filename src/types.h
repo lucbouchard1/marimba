@@ -24,7 +24,7 @@ struct KernelSection {
    const char *section_name;
 };
 
-struct SystemMMap {
+struct PhysicalMMap {
    size_t total_ram;
    unsigned int num_mmap;
    struct MMapEntry ram_sects[MAX_MMAP_ENTRIES];

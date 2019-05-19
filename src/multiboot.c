@@ -56,7 +56,7 @@ struct MultibootELFTag {
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wint-to-pointer-cast"
 
-static int parse_mmap(struct MultibootMMapTag *mmap, struct SystemMMap *dest)
+static int parse_mmap(struct MultibootMMapTag *mmap, struct PhysicalMMap *dest)
 {
    struct MultibootMMapEntry *curr = mmap->entries;
    int entries = mmap->size/mmap->entry_size, i;
@@ -83,12 +83,12 @@ static int parse_mmap(struct MultibootMMapTag *mmap, struct SystemMMap *dest)
    return 0;
 }
 
-static int parse_elf(struct MultibootELFTag *elf, struct SystemMMap *dest)
+static int parse_elf(struct MultibootELFTag *elf, struct PhysicalMMap *dest)
 {
    return ELF_parse_section_headers(dest, elf->sections, elf->num, elf->shndx);
 }
 
-int MB_parse_multiboot(struct SystemMMap *dest, uint32_t mb_magic, uint32_t mb_addr)
+int MB_parse_multiboot(struct PhysicalMMap *dest, uint32_t mb_magic, uint32_t mb_addr)
 {
    struct MultibootTag *tag = (struct MultibootTag *) (mb_addr + 8);
 

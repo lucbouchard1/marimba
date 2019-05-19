@@ -1,5 +1,7 @@
 #include "../../paging.h"
 #include "../../string.h"
+#include "../../interrupts.h"
+#include "../../printk.h"
 
 #include <stdint.h>
 
@@ -24,7 +26,18 @@ struct PTE {
 static struct PTE identity_p3[PAGE_TABLE_NUM_ENTS] __attribute__ ((aligned (4096)));
 static struct PTE identity_p2[PAGE_TABLE_NUM_ENTS] __attribute__ ((aligned (4096)));
 
-void PT_init(struct SystemMMap *map)
+static void page_fault_handler(int irq, int err, void *arg)
+{
+   void *req_addr;
+   void *p4_addr;
+
+   asm volatile ("mov %0, %%cr2" : "=r"(req_addr));
+   asm volatile ("mov %0, %%cr3" : "=r"(p4_addr));
+
+   printk("Page fault on address %p. Page table at %p\n", req_addr, p4_addr);
+}
+
+void PT_init(struct PhysicalMMap *map)
 {
    int i;
 
@@ -40,6 +53,8 @@ void PT_init(struct SystemMMap *map)
       identity_p2[i].writable = 1;
       identity_p2[i].address = i*HUGE_PAGE_FRAME_SIZE;
    }
+
+   IRQ_set_handler(PAGE_FAULT_IRQ, page_fault_handler, NULL);
 }
 
 void PT_page_table_init(void *addr)
