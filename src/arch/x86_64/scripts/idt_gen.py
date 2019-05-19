@@ -1,5 +1,11 @@
 
 
+irq_ist_map = {
+    0xD: 2,      # Map GPF interrupts to stack 2
+    0x8: 3,      # Map double fault interrupts to stack 3
+    0xE: 4       # Map page fault interrupts to stack 4
+}
+
 target_offset_setup = """\
    template.target_0_15 = (uint16_t)isr_{0};
    template.target_16_31 = (uint16_t)((uint64_t)isr_{0} >> 16);
@@ -48,6 +54,8 @@ print('{')
 for irq in range(256):
     print(target_offset_setup.format(irq))
     print('   IDT[{0}] = template;'.format(irq))
+    if (irq in irq_ist_map):
+        print('   IDT[{0}].ist = {1};'.format(irq, irq_ist_map[irq]))
     print('')
 
 print('   IDT_desc.length =  (sizeof(struct IDTEntry)*256) - 1;')
