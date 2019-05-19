@@ -3,6 +3,7 @@
 #include "mmu.h"
 #include "printk.h"
 #include "string.h"
+#include "utils.h"
 
 #define MAX_FREE_SEGMENTS 32
 #define MAX_EXCLUDE_SEGMENTS 128
@@ -20,17 +21,12 @@ struct SegmentList {
 
 struct MMUState {
    struct SegmentList free_segments[MAX_FREE_SEGMENTS];
-   struct SegmentList *free_head;
+   struct SegmentList *free_segment_head;
+   void *free_page_head;
+   void *free_page_tail;
 };
 
 static struct MMUState mmu_state;
-
-int max(int i1, int i2)
-{
-   if (i1 > i2)
-      return i1;
-   return i2;
-}
 
 /**
  * Converts the KernelSection entries in the SystemMMap into a
@@ -46,11 +42,11 @@ static struct SegmentList *mmu_compute_excluded(struct SystemMMap *map,
 
    /* Copy kernel segments into excluded segments array */
    ex_head = &excluded[0];
-   for (i = 0, prev = 0; i < map->num_kernel_sects; i++) {
+   for (i = 0, prev = NULL; i < map->num_kernel_sects; i++) {
       excluded[i].s.base = map->kernel_sects[i].base;
       excluded[i].s.len = map->kernel_sects[i].length;
       excluded[i].s.end = excluded[i].s.base + excluded[i].s.len;
-      excluded[i].next = 0;
+      excluded[i].next = NULL;
       if (prev)
          prev->next = &excluded[i];
       prev = &excluded[i];
@@ -96,21 +92,21 @@ static void mmu_compute_free_segments(struct MMUState *mmu, struct SystemMMap *m
    int i;
 
    /* Copy RAM MMap into free_segments array */
-   mmu->free_head = mmu->free_segments;
-   for (i = 0, prev = 0; i < map->num_mmap; i++) {
+   mmu->free_segment_head = mmu->free_segments;
+   for (i = 0, prev = NULL; i < map->num_mmap; i++) {
       curr = &mmu->free_segments[i];
       curr->s.base = map->avail_ram[i].base;
       curr->s.len = map->avail_ram[i].length;
       curr->s.end = curr->s.base + curr->s.len;
-      curr->next = 0;
+      curr->next = NULL;
       if (prev)
          prev->next = curr;
       prev = curr;
    }
 
    /* Remove excluded sections from free segments array */
-   prev = 0;
-   for (fcurr = mmu->free_head, ecurr = ex_head; fcurr && ecurr; ) {
+   prev = NULL;
+   for (fcurr = mmu->free_segment_head, ecurr = ex_head; fcurr && ecurr; ) {
       if (fcurr->s.base < ecurr->s.base && fcurr->s.end > ecurr->s.base) {
          fcurr->s.len = ecurr->s.base - fcurr->s.base;
          if (fcurr->s.end > ecurr->s.end) {
@@ -130,7 +126,7 @@ static void mmu_compute_free_segments(struct MMUState *mmu, struct SystemMMap *m
             if (prev)
                prev->next = fcurr->next;
             else
-               mmu->free_head = fcurr->next;
+               mmu->free_segment_head = fcurr->next;
          } else {
             fcurr->s.len = fcurr->s.end - ecurr->s.end;
             fcurr->s.base = ecurr->s.end;
@@ -164,7 +160,7 @@ int MMU_init(struct SystemMMap *map)
       printk("Base: %p   End: %p   Len: 0x%lx\n", curr->s.base, curr->s.end, curr->s.len);
 
    printk("\n Free Sections:\n");
-   for (curr = mmu_state.free_head; curr; curr = curr->next)
+   for (curr = mmu_state.free_segment_head; curr; curr = curr->next)
       printk("Base: %p   End: %p   Len: 0x%lx\n", curr->s.base, curr->s.end, curr->s.len);
 
    return 0;
@@ -174,14 +170,31 @@ void *MMU_pf_alloc()
 {
    void *ret;
 
-   if (mmu_state.free_head) {
-      ret = mmu_state.free_head->s.base;
-      mmu_state.free_head->s.base += MMU_PAGE_SIZE;
-      mmu_state.free_head->s.len -= MMU_PAGE_SIZE;
-      if (!mmu_state.free_head->s.len)
-         mmu_state.free_head = mmu_state.free_head->next;
+   if (mmu_state.free_segment_head) {
+      ret = mmu_state.free_segment_head->s.base;
+      mmu_state.free_segment_head->s.base += MMU_PAGE_SIZE;
+      mmu_state.free_segment_head->s.len -= MMU_PAGE_SIZE;
+      if (!mmu_state.free_segment_head->s.len)
+         mmu_state.free_segment_head = mmu_state.free_segment_head->next;
       return ret;
    }
 
-   return 0;
+   if (!mmu_state.free_page_head)
+      return NULL;
+
+   ret = mmu_state.free_page_head;
+   mmu_state.free_page_head = *((void **)mmu_state.free_page_head);
+   return ret;
+}
+
+void MMU_pf_free(void *pf)
+{
+   if (!mmu_state.free_page_head) {
+      mmu_state.free_page_head = pf;
+      mmu_state.free_page_tail = pf;
+   } else {
+      *((void **)mmu_state.free_page_tail) = pf;
+      mmu_state.free_page_tail = pf;
+   }
+   *((void **)pf) = NULL;
 }

@@ -16,4 +16,8 @@ void sort(void *arr, size_t len, size_t el_len,
 void sort_kernel_section_array(struct KernelSection *arr, size_t len);
 void sort_mmap_entry_array(struct MMapEntry *arr, size_t len);
 
+#define max(x,y) ( \
+    { __auto_type __x = (x); __auto_type __y = (y); \
+      __x > __y ? __x : __y; })
+
 #endif
