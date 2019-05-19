@@ -2,6 +2,7 @@
 #include "../../string.h"
 #include "../../interrupts.h"
 #include "../../printk.h"
+#include "../../mmap.h"
 
 #include <stdint.h>
 
@@ -26,13 +27,16 @@ struct PTE {
 static struct PTE identity_p3[PAGE_TABLE_NUM_ENTS] __attribute__ ((aligned (4096)));
 static struct PTE identity_p2[PAGE_TABLE_NUM_ENTS] __attribute__ ((aligned (4096)));
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wint-to-pointer-cast"
+
 static void page_fault_handler(int irq, int err, void *arg)
 {
-   void *req_addr;
-   void *p4_addr;
+   void *req_addr, *p4_addr;
+   // Need to check if address is in identity mapped region!! <<< IMPORTANT
 
-   asm volatile ("mov %0, %%cr2" : "=r"(req_addr));
-   asm volatile ("mov %0, %%cr3" : "=r"(p4_addr));
+   asm volatile ("mov %%cr2, %0" : "=r"(req_addr));
+   asm volatile ("mov %%cr3, %0" : "=r"(p4_addr));
 
    printk("Page fault on address %p. Page table at %p\n", req_addr, p4_addr);
 
@@ -45,16 +49,16 @@ void PT_init(struct PhysicalMMap *map)
 
    /* Initialize third level identity page table */
    memset(identity_p3, 0, sizeof(struct PTE)*PAGE_TABLE_NUM_ENTS);
+   *((void **)identity_p3) = identity_p2;
    identity_p3[0].present = 1;
    identity_p3[0].writable = 1;
-   identity_p3[0].address = (uint64_t)identity_p2;
 
    /* Initialize second level identity page table */
    for (i = 0; i < PAGE_TABLE_NUM_ENTS; i++) {
+      *((void **)(&identity_p2[i])) = (void *)(i*HUGE_PAGE_FRAME_SIZE);
       identity_p2[i].present = 1;
       identity_p2[i].writable = 1;
       identity_p2[i].huge_page = 1;
-      identity_p2[i].address = i*HUGE_PAGE_FRAME_SIZE;
    }
 
    IRQ_set_handler(PAGE_FAULT_IRQ, page_fault_handler, NULL);
@@ -65,13 +69,11 @@ void PT_page_table_init(void *addr)
    struct PTE *p4_addr = (struct PTE *)addr;
 
    memset(p4_addr, 0, sizeof(struct PTE)*PAGE_TABLE_NUM_ENTS);
+   *((void **)p4_addr) = identity_p3;
    p4_addr[0].present = 1;
    p4_addr[0].writable = 1;
-   p4_addr[0].address = (uint64_t)identity_p3;
 }
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wint-to-pointer-cast"
 void *PT_addr_virt_to_phys(void *p4_addr, void *raw_vaddr)
 {
    int offset, i;
@@ -90,4 +92,5 @@ void *PT_addr_virt_to_phys(void *p4_addr, void *raw_vaddr)
 
    return (void *)((uint8_t *)curr + ((vaddr & page_offset_mask) >> 35));
 }
+
 #pragma GCC diagnostic pop
