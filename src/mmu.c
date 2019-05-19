@@ -89,6 +89,7 @@ static void mmu_compute_free_segments(struct MMUState *mmu, struct SystemMMap *m
 {
    struct SegmentList *prev, *curr;
    struct SegmentList *fcurr, *ecurr;
+   uint64_t new_base;
    int i;
 
    /* Copy RAM MMap into free_segments array */
@@ -101,6 +102,28 @@ static void mmu_compute_free_segments(struct MMUState *mmu, struct SystemMMap *m
       curr->next = NULL;
       if (prev)
          prev->next = curr;
+      prev = curr;
+   }
+
+   /* Round free sections to page boundaries */
+   for (curr = mmu->free_segment_head, prev = NULL; curr; curr = curr->next) {
+      /* Round up base to page offset */
+      if ((uint64_t)curr->s.base % MMU_PAGE_SIZE) {
+         new_base += (uint64_t)curr->s.base + MMU_PAGE_SIZE;
+         new_base -= (new_base % MMU_PAGE_SIZE);
+      }
+      curr->s.len = (uint64_t)curr->s.end - new_base;
+      curr->s.base = (void *)new_base;
+      /* Round down length to page size */
+      curr->s.len = curr->s.len - (curr->s.len % MMU_PAGE_SIZE);
+      curr->s.end = curr->s.base + curr->s.len;
+      /* Delete free segment if it shrunk too much */
+      if (curr->s.len <= 0) {
+         if (prev)
+            prev->next = curr->next;
+         else
+            mmu->free_segment_head = curr->next;
+      }
       prev = curr;
    }
 
@@ -135,6 +158,16 @@ static void mmu_compute_free_segments(struct MMUState *mmu, struct SystemMMap *m
       } else {
          prev = fcurr;
          fcurr = fcurr->next;
+      }
+   }
+
+   /* Ignore page at address 0 so NULL checks can work in MMU code */
+   if (mmu->free_segment_head->s.base == NULL) {
+      if (mmu->free_segment_head->s.len == MMU_PAGE_SIZE) {
+         mmu->free_segment_head = mmu->free_segment_head->next;
+      } else {
+         mmu->free_segment_head->s.base += MMU_PAGE_SIZE;
+         mmu->free_segment_head->s.len -= MMU_PAGE_SIZE;
       }
    }
 }
