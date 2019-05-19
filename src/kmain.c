@@ -35,7 +35,7 @@ void kmain(uint32_t mb_magic, uint32_t mb_addr)
    printk("Ram MMAP:\n");
    for (i = 0; i < map.num_mmap; i++)
       printk("Addr: %p   Len: %lx\n",
-            map.avail_ram[i].base, map.avail_ram[i].length);
+            map.ram_sects[i].base, map.ram_sects[i].length);
 
    printk("\nKernel Sections:\n");
    for (i = 0; i < map.num_kernel_sects; i++)

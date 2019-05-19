@@ -27,7 +27,7 @@ struct KernelSection {
 struct SystemMMap {
    size_t total_ram;
    unsigned int num_mmap;
-   struct MMapEntry avail_ram[MAX_MMAP_ENTRIES];
+   struct MMapEntry ram_sects[MAX_MMAP_ENTRIES];
 
    unsigned int num_kernel_sects;
    struct KernelSection kernel_sects[MAX_KERNEL_SECTIONS];

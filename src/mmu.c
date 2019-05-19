@@ -96,8 +96,8 @@ static void mmu_compute_free_segments(struct MMUState *mmu, struct SystemMMap *m
    mmu->free_segment_head = mmu->free_segments;
    for (i = 0, prev = NULL; i < map->num_mmap; i++) {
       curr = &mmu->free_segments[i];
-      curr->s.base = map->avail_ram[i].base;
-      curr->s.len = map->avail_ram[i].length;
+      curr->s.base = map->ram_sects[i].base;
+      curr->s.len = map->ram_sects[i].length;
       curr->s.end = curr->s.base + curr->s.len;
       curr->next = NULL;
       if (prev)

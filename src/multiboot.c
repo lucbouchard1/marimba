@@ -71,14 +71,14 @@ static int parse_mmap(struct MultibootMMapTag *mmap, struct SystemMMap *dest)
          return -1;
       }
 
-      dest->avail_ram[dest->num_mmap].base = (void *)curr->addr;
-      dest->avail_ram[dest->num_mmap].length = curr->len;
+      dest->ram_sects[dest->num_mmap].base = (void *)curr->addr;
+      dest->ram_sects[dest->num_mmap].length = curr->len;
       dest->num_mmap++;
    }
-   sort_mmap_entry_array(dest->avail_ram, dest->num_mmap);
+   sort_mmap_entry_array(dest->ram_sects, dest->num_mmap);
 
-   dest->total_ram = (size_t)dest->avail_ram[dest->num_mmap-1].base +
-         dest->avail_ram[dest->num_mmap-1].length;
+   dest->total_ram = (size_t)dest->ram_sects[dest->num_mmap-1].base +
+         dest->ram_sects[dest->num_mmap-1].length;
 
    return 0;
 }
