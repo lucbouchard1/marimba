@@ -26,6 +26,7 @@ struct MMUState {
    void *free_page_head;
    void *free_page_tail;
    void *page_table;
+   uint8_t *next_kernel_heap_vaddr;
 };
 
 static struct MMUState mmu_state;
@@ -191,6 +192,7 @@ int MMU_init(struct PhysicalMMap *map)
    ex_head = mmu_compute_excluded(map, excluded);
    mmu_compute_free_segments(&mmu_state, map, ex_head);
 
+   mmu_state.next_kernel_heap_vaddr = (void *)(MMAP_KERNEL_HEAP_END - PAGE_SIZE);
    mmu_state.page_table = MMU_alloc_frame();
    if (!mmu_state.page_table)
       return -1;
@@ -223,16 +225,42 @@ void *MMU_alloc_frame()
    return ret;
 }
 
-void MMU_free_frame(void *pf)
+void MMU_free_frame(void *addr)
 {
    if (!mmu_state.free_page_head) {
-      mmu_state.free_page_head = pf;
-      mmu_state.free_page_tail = pf;
+      mmu_state.free_page_head = addr;
+      mmu_state.free_page_tail = addr;
    } else {
-      *((void **)mmu_state.free_page_tail) = pf;
-      mmu_state.free_page_tail = pf;
+      *((void **)mmu_state.free_page_tail) = addr;
+      mmu_state.free_page_tail = addr;
    }
-   *((void **)pf) = NULL;
+   *((void **)addr) = NULL;
+}
+
+void *MMU_alloc_page()
+{
+   void *ret;
+
+   if (mmu_state.next_kernel_heap_vaddr == (void *)MMAP_KERNEL_HEAP_START) {
+      printk("error: out of kernel heap virtual addresses\n");
+      return NULL;
+   }
+
+   ret = mmu_state.next_kernel_heap_vaddr;
+   mmu_state.next_kernel_heap_vaddr -= PAGE_SIZE;
+   return ret;
+}
+
+void MMU_free_page(void *vaddr)
+{
+   void *addr = PT_addr_virt_to_phys(mmu_state.page_table, vaddr);
+
+   if (!addr || (uint64_t)addr % PAGE_SIZE) {
+      printk("error: attempting to free invalid address\n");
+      return;
+   }
+
+   MMU_free_frame(addr);
 }
 
 void MMU_stress_test()

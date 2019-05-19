@@ -5,6 +5,7 @@
 
 void PT_init(struct PhysicalMMap *map);
 void PT_page_table_init(void *addr);
+void *PT_addr_virt_to_phys(void *pt_addr, void *vaddr);
 
 #if ARCH == x86_64
 #include "arch/x86_64/paging.h"
