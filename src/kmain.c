@@ -4,12 +4,11 @@
 #include "interrupts.h"
 #include "hw_init.h"
 #include "mmu.h"
-#include "page_table.h"
 #include "multiboot.h"
 #include "drivers/keyboard/keyboard.h"
 #include "drivers/serial/serial.h"
 
-static struct SystemMMap map;
+static struct PhysicalMMap map;
 
 void keyboard_isr(int irq, int err, void *arg)
 {
