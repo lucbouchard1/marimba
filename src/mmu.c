@@ -232,3 +232,28 @@ void MMU_pf_free(void *pf)
    }
    *((void **)pf) = NULL;
 }
+
+void MMU_stress_test()
+{
+   void *page_buff[100], *res = NULL;
+   int i, cycle, total_cycles = 10000;
+
+   printk("Large Allocation Stress Test:\n");
+   for (cycle = 0; cycle <= total_cycles; cycle++) {
+      printk("Allocating and freeing 100 pages [%d/%d]", cycle, total_cycles);
+      for (i = 0; i < 100; i++)
+         page_buff[i] = MMU_pf_alloc();
+
+      for (i = 0; i < 100; i++)
+         MMU_pf_free(page_buff[i]);
+      printk("\r");
+   }
+   printk("\nDone.\n");
+
+   printk("Max Allocation Stress Test:\n");
+   res = MMU_pf_alloc();
+   for (cycle = 1; res; cycle++)
+      res = MMU_pf_alloc();
+   printk("Page frame alloc returned NULL after allocating %d pages\n", cycle);
+   printk("Done.\n");
+}

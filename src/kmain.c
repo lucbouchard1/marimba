@@ -41,7 +41,7 @@ void kmain(uint32_t mb_magic, uint32_t mb_addr)
             map.kernel_sects[i].length, map.kernel_sects[i].section_name);
 
    MMU_init(&map);
-
+   MMU_stress_test();
 
    kdev = init_ps2(1);
    IRQ_set_handler(0x21, keyboard_isr, kdev);
