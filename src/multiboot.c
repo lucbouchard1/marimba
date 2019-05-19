@@ -77,6 +77,9 @@ static int parse_mmap(struct MultibootMMapTag *mmap, struct SystemMMap *dest)
    }
    sort_mmap_entry_array(dest->avail_ram, dest->num_mmap);
 
+   dest->total_ram = (size_t)dest->avail_ram[dest->num_mmap-1].base +
+         dest->avail_ram[dest->num_mmap-1].length;
+
    return 0;
 }
 

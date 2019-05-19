@@ -30,6 +30,8 @@ void kmain(uint32_t mb_magic, uint32_t mb_addr)
 
    MB_parse_multiboot(&map, mb_magic, mb_addr);
 
+   printk("Total Memory %ld\n", map.total_ram);
+
    printk("Ram MMAP:\n");
    for (i = 0; i < map.num_mmap; i++)
       printk("Addr: %p   Len: %lx\n",
