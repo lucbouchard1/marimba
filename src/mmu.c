@@ -4,6 +4,8 @@
 #include "printk.h"
 #include "string.h"
 #include "utils.h"
+#include "interrupts.h"
+#include "page_table.h"
 
 #define MAX_FREE_SEGMENTS 32
 #define MAX_EXCLUDE_SEGMENTS 128
@@ -24,14 +26,21 @@ struct MMUState {
    struct SegmentList *free_segment_head;
    void *free_page_head;
    void *free_page_tail;
+   void *page_table;
 };
 
 static struct MMUState mmu_state;
 
+static void page_fault_handler(int irq, int err, void *arg)
+{
+
+}
+
 /**
  * Converts the KernelSection entries in the SystemMMap into a
- * page-aligned linked list of used memory regions. Returns
- * head pointer to the linked list.
+ * page-aligned linked list of used memory regions.
+ * 
+ * @retval Head pointer to the linked list.
  */
 static struct SegmentList *mmu_compute_excluded(struct SystemMMap *map,
       struct SegmentList *excluded)
@@ -186,8 +195,17 @@ int MMU_init(struct SystemMMap *map)
    }
 
    ex_head = mmu_compute_excluded(map, excluded);
-
    mmu_compute_free_segments(&mmu_state, map, ex_head);
+
+   mmu_state.page_table = MMU_pf_alloc();
+   if (!mmu_state.page_table)
+      return -1;
+
+   PT_init(map);
+   PT_page_table_init(mmu_state.page_table);
+   PT_change(mmu_state.page_table);
+
+   IRQ_set_handler(PAGE_FAULT_IRQ, page_fault_handler, &mmu_state);
 
    return 0;
 }
