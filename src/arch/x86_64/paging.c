@@ -53,6 +53,7 @@ void PT_init(struct PhysicalMMap *map)
    for (i = 0; i < PAGE_TABLE_NUM_ENTS; i++) {
       identity_p2[i].present = 1;
       identity_p2[i].writable = 1;
+      identity_p2[i].huge_page = 1;
       identity_p2[i].address = i*HUGE_PAGE_FRAME_SIZE;
    }
 
