@@ -229,7 +229,7 @@ void MMU_stress_test()
 {
    void *page_buff[100], *res = NULL;
    int i, cycle, total_cycles = 10000;
-   const char *bit_patt_base = "bit pattern wohoo!";
+   const char *bit_patt_base = "bit pattern woohoo!";
    int bit_patt_len = strlen(bit_patt_base);
    int bit_patt_off = 20;
 
@@ -249,9 +249,10 @@ void MMU_stress_test()
    printk("   applying bit patterns on all pages...\n");
    for (cycle = 0; 1; cycle++) {
       res = MMU_pf_alloc();
-      /* Check if we've gotten through all the pages */
+      /* Check if we've gotten through all the pages by looking for the bit pattern */
       if (!memcmp(&((char *)res)[bit_patt_off], bit_patt_base, bit_patt_len))
          break;
+      /* Write bit pattern to page */
       memcpy(&((char *)res)[bit_patt_off], bit_patt_base, bit_patt_len);
       ((int *)res)[bit_patt_off + bit_patt_len] = cycle;
       MMU_pf_free(res);
