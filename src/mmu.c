@@ -108,8 +108,9 @@ static void mmu_compute_free_segments(struct MMUState *mmu, struct SystemMMap *m
    /* Round free sections to page boundaries */
    for (curr = mmu->free_segment_head, prev = NULL; curr; curr = curr->next) {
       /* Round up base to page offset */
-      if ((uint64_t)curr->s.base % MMU_PAGE_SIZE) {
-         new_base += (uint64_t)curr->s.base + MMU_PAGE_SIZE;
+      new_base = (uint64_t)curr->s.base;
+      if (new_base % MMU_PAGE_SIZE) {
+         new_base += MMU_PAGE_SIZE;
          new_base -= (new_base % MMU_PAGE_SIZE);
       }
       curr->s.len = (uint64_t)curr->s.end - new_base;
@@ -195,7 +196,7 @@ int MMU_init(struct SystemMMap *map)
    printk("\n Free Sections:\n");
    for (curr = mmu_state.free_segment_head; curr; curr = curr->next)
       printk("Base: %p   End: %p   Len: 0x%lx\n", curr->s.base, curr->s.end, curr->s.len);
-
+   printk("\n");
    return 0;
 }
 
