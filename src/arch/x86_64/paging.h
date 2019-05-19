@@ -7,7 +7,7 @@
 
 static inline void PT_change(void *p4_addr)
 {
-   asm volatile ("mov %%cr3, %0" : : "r"(p4_addr));
+   asm volatile ("mov %0, %%cr3" : : "r"(p4_addr));
 }
 
 #endif
