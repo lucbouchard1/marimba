@@ -229,6 +229,9 @@ void MMU_stress_test()
 {
    void *page_buff[100], *res = NULL;
    int i, cycle, total_cycles = 10000;
+   const char *bit_patt_base = "bit pattern wohoo!";
+   int bit_patt_len = strlen(bit_patt_base);
+   int bit_patt_off = 20;
 
    printk("Large Allocation Stress Test:\n");
    for (cycle = 0; cycle <= total_cycles; cycle++) {
@@ -241,6 +244,28 @@ void MMU_stress_test()
       printk("\r");
    }
    printk("\nDone.\n");
+
+   printk("Bit Pattern Stress Test:\n");
+   printk("   applying bit patterns on all pages...\n");
+   for (cycle = 0; 1; cycle++) {
+      res = MMU_pf_alloc();
+      /* Check if we've gotten through all the pages */
+      if (!memcmp(&((char *)res)[bit_patt_off], bit_patt_base, bit_patt_len))
+         break;
+      memcpy(&((char *)res)[bit_patt_off], bit_patt_base, bit_patt_len);
+      ((int *)res)[bit_patt_off + bit_patt_len] = cycle;
+      MMU_pf_free(res);
+   }
+   printk("   checking bit patterns on all pages...\n");
+   for (i = 0; i < cycle; i++) {
+      MMU_pf_free(res);
+      if (memcmp(&((char *)res)[bit_patt_off], bit_patt_base, bit_patt_len) ||
+               ((int *)res)[bit_patt_off + bit_patt_len] != i)
+         printk("Bit Pattern Failure!\n");
+      res = MMU_pf_alloc();
+   }
+   MMU_pf_free(res);
+   printk("Done.\n");
 
    printk("Max Allocation Stress Test:\n");
    res = MMU_pf_alloc();

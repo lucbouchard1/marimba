@@ -21,6 +21,16 @@ void *memcpy(void *dest, const void *src, size_t n)
    return dest;
 }
 
+int memcmp(const void *m1, const void *m2, size_t n)
+{
+   size_t curr;
+
+   for (curr = 0; curr < n; curr++)
+      if (((char *)m1)[curr] != ((char *)m2)[curr])
+         return ((char *)m1)[curr] - ((char *)m2)[curr];
+   return 0;
+}
+
 size_t strlen(const char *s)
 {
    const char *cur;
