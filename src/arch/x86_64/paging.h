@@ -1,5 +1,5 @@
-#ifndef __X86_64_PAGE_TABLE_H__
-#define __X86_64_PAGE_TABLE_H__
+#ifndef __X86_64_PAGING_H__
+#define __X86_64_PAGING_H__
 
 #define PAGE_TABLE_NUM_ENTS 512
 #define PAGE_TABLE_SIZE (sizeof(void *) * PAGE_TABLE_NUM_ENTS)

@@ -1,4 +1,4 @@
-#include "../../page_table.h"
+#include "../../paging.h"
 #include "../../string.h"
 
 #include <stdint.h>

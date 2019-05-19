@@ -5,7 +5,7 @@
 #include "string.h"
 #include "utils.h"
 #include "interrupts.h"
-#include "page_table.h"
+#include "paging.h"
 
 #define MAX_FREE_SEGMENTS 32
 #define MAX_EXCLUDE_SEGMENTS 128
