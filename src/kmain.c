@@ -4,6 +4,7 @@
 #include "interrupts.h"
 #include "hw_init.h"
 #include "mmu.h"
+#include "page_table.h"
 #include "multiboot.h"
 #include "drivers/keyboard/keyboard.h"
 #include "drivers/serial/serial.h"
@@ -18,6 +19,8 @@ void keyboard_isr(int irq, int err, void *arg)
    c = dev->read_char(dev);
    printk("%c", c);
 }
+
+static char page_table[PAGE_TABLE_SIZE] __attribute__ ((aligned (4096)));
 
 void kmain(uint32_t mb_magic, uint32_t mb_addr)
 {
@@ -43,7 +46,11 @@ void kmain(uint32_t mb_magic, uint32_t mb_addr)
             map.kernel_sects[i].length, map.kernel_sects[i].section_name);
 
    MMU_init(&map);
-   MMU_stress_test();
+   //MMU_stress_test();
+
+   PT_init(&map);
+   PT_page_table_init(page_table);
+   PT_change(page_table);
 
    kdev = init_ps2(1);
    IRQ_set_handler(0x21, keyboard_isr, kdev);
