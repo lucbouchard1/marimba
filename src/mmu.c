@@ -189,14 +189,6 @@ int MMU_init(struct SystemMMap *map)
 
    mmu_compute_free_segments(&mmu_state, map, ex_head);
 
-   printk("\n Excluded Sections:\n");
-   for (curr = ex_head; curr; curr = curr->next)
-      printk("Base: %p   End: %p   Len: 0x%lx\n", curr->s.base, curr->s.end, curr->s.len);
-
-   printk("\n Free Sections:\n");
-   for (curr = mmu_state.free_segment_head; curr; curr = curr->next)
-      printk("Base: %p   End: %p   Len: 0x%lx\n", curr->s.base, curr->s.end, curr->s.len);
-   printk("\n");
    return 0;
 }
 
