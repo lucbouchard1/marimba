@@ -45,7 +45,7 @@ switch (specifier)                    \
 char buf[64], *cur = buf+64;          \
 *(cur--) = 0;                         \
 if (!d) {                             \
-   VGA_display_char('0');             \
+   display_char('0');                 \
    return;                            \
 }                                     \
 for (; d; d /= 10, cur--)             \
@@ -58,7 +58,7 @@ char buf[64], *cur = buf+64;          \
 int digit;                            \
 *(cur--) = 0;                         \
 if (!d) {                             \
-   VGA_display_char('0');             \
+   display_char('0');                 \
    return;                            \
 }                                     \
 for (; d; d /= 16, cur--) {           \

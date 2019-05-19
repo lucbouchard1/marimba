@@ -176,7 +176,7 @@ static void mmu_compute_free_segments(struct MMUState *mmu, struct SystemMMap *m
 int MMU_init(struct SystemMMap *map)
 {
    struct SegmentList excluded[MAX_EXCLUDE_SEGMENTS];
-   struct SegmentList *ex_head, *curr;
+   struct SegmentList *ex_head;
 
    memset(&mmu_state, 0, sizeof(struct MMUState));
 
