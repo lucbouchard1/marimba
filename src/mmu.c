@@ -190,7 +190,7 @@ int MMU_init(struct PhysicalMMap *map)
    ex_head = mmu_compute_excluded(map, excluded);
    mmu_compute_free_segments(&mmu_state, map, ex_head);
 
-   mmu_state.page_table = MMU_pf_alloc();
+   mmu_state.page_table = MMU_frame_alloc();
    if (!mmu_state.page_table)
       return -1;
 
@@ -201,7 +201,7 @@ int MMU_init(struct PhysicalMMap *map)
    return 0;
 }
 
-void *MMU_pf_alloc()
+void *MMU_frame_alloc()
 {
    void *ret;
 
@@ -222,7 +222,7 @@ void *MMU_pf_alloc()
    return ret;
 }
 
-void MMU_pf_free(void *pf)
+void MMU_frame_free(void *pf)
 {
    if (!mmu_state.free_page_head) {
       mmu_state.free_page_head = pf;
@@ -246,10 +246,10 @@ void MMU_stress_test()
    for (cycle = 0; cycle <= total_cycles; cycle++) {
       printk("Allocating and freeing 100 pages [%d/%d]", cycle, total_cycles);
       for (i = 0; i < 100; i++)
-         page_buff[i] = MMU_pf_alloc();
+         page_buff[i] = MMU_frame_alloc();
 
       for (i = 0; i < 100; i++)
-         MMU_pf_free(page_buff[i]);
+         MMU_frame_free(page_buff[i]);
       printk("\r");
    }
    printk("\nDone.\n");
@@ -257,32 +257,32 @@ void MMU_stress_test()
    printk("Bit Pattern Stress Test:\n");
    printk("   applying bit patterns on all pages...\n");
    for (cycle = 0; 1; cycle++) {
-      res = MMU_pf_alloc();
+      res = MMU_frame_alloc();
       /* Check if we've gotten through all the pages by looking for the bit pattern */
       if (!memcmp(&((char *)res)[bit_patt_off], bit_patt_base, bit_patt_len))
          break;
       /* Write bit pattern to page */
       memcpy(&((char *)res)[bit_patt_off], bit_patt_base, bit_patt_len);
       ((int *)res)[bit_patt_off + bit_patt_len] = cycle;
-      MMU_pf_free(res);
+      MMU_frame_free(res);
    }
    printk("   applied bit pattern to %d pages...\n", cycle);
    printk("   checking bit patterns on all pages...\n");
    for (i = 0; i < cycle; i++) {
-      MMU_pf_free(res);
+      MMU_frame_free(res);
       if (memcmp(&((char *)res)[bit_patt_off], bit_patt_base, bit_patt_len) ||
                ((int *)res)[bit_patt_off + bit_patt_len] != i)
          printk("Bit Pattern Failure!\n");
-      res = MMU_pf_alloc();
+      res = MMU_frame_alloc();
    }
-   MMU_pf_free(res);
+   MMU_frame_free(res);
    printk("   checked bit pattern on %d pages...\n", i);
    printk("Done.\n");
 
    printk("Max Allocation Stress Test:\n");
-   res = MMU_pf_alloc();
+   res = MMU_frame_alloc();
    for (cycle = 1; res; cycle++)
-      res = MMU_pf_alloc();
+      res = MMU_frame_alloc();
    printk("Page frame alloc returned NULL after allocating %d pages\n", cycle);
    printk("Done.\n");
 }
