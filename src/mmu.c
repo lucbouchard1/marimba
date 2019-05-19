@@ -256,6 +256,7 @@ void MMU_stress_test()
       ((int *)res)[bit_patt_off + bit_patt_len] = cycle;
       MMU_pf_free(res);
    }
+   printk("   applied bit pattern to %d pages...\n", cycle);
    printk("   checking bit patterns on all pages...\n");
    for (i = 0; i < cycle; i++) {
       MMU_pf_free(res);
@@ -265,6 +266,7 @@ void MMU_stress_test()
       res = MMU_pf_alloc();
    }
    MMU_pf_free(res);
+   printk("   checked bit pattern on %d pages...\n", i);
    printk("Done.\n");
 
    printk("Max Allocation Stress Test:\n");
