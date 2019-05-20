@@ -96,7 +96,6 @@ static void page_fault_handler(int irq, int err, void *arg)
    void *req_addr, *p4_addr, *frame;
    struct PTE *ent;
    int depth;
-   // Need to check if address is in identity mapped region!! <<< IMPORTANT
 
    req_addr = pt_get_req_vaddr();
    p4_addr = pt_get_addr();
@@ -107,8 +106,6 @@ static void page_fault_handler(int irq, int err, void *arg)
       printk("error: invalid page fault\n");
       return;
    }
-
-   printk("Entry Addr %p\n", ent);
 
    if (!ent->demand_allocate || depth != PAGE_TABLE_DEPTH - 1) {
       printk("error: unhandled page fault\n");

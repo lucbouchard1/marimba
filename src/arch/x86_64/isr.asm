@@ -8,12 +8,27 @@ section .text
 bits 64
 isr_normal:
    call IRQ_generic_isr
+   pop rax
+   pop r9
+   pop r8
+   pop rcx
+   pop rdx
+   pop rsi
    pop rdi
+   pop r11
+   pop r10
    iretq
 
 isr_error:
    call IRQ_generic_isr_error
+   pop rax
+   pop r9
+   pop r8
+   pop rcx
+   pop rdx
    pop rsi
    pop rdi
+   pop r11
+   pop r10
    add rsp, 8    ; Remove error code from stack
    iretq
