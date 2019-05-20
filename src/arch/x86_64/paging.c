@@ -101,9 +101,6 @@ static void page_fault_handler(int irq, int err, void *arg)
    req_addr = pt_get_req_vaddr();
    p4_addr = pt_get_addr();
 
-   printk("Page fault on address %p. Page table at %p. Error %x\n", req_addr, p4_addr, err);
-   return;
-
    if ((depth = pt_walk(p4_addr, req_addr, &ent)) == PAGE_TABLE_DEPTH) {
       printk("error: invalid page fault\n");
       return;
