@@ -70,7 +70,7 @@ static inline int pt_offset_for_depth(void *vaddr, int depth)
 
    if (depth == PAGE_TABLE_DEPTH)
       return addr & 0xFFF;
-   return (addr >> (12 + 8*(PAGE_TABLE_DEPTH - depth - 1))) & 0xFF;
+   return (addr >> (12 + 9*(PAGE_TABLE_DEPTH - depth - 1))) & 0x1FF;
 }
 
 static int pt_walk(void *p4_addr, void *vaddr, struct PTE **dest)
@@ -100,6 +100,8 @@ static void page_fault_handler(int irq, int err, void *arg)
 
    req_addr = pt_get_req_vaddr();
    p4_addr = pt_get_addr();
+
+   printk("Page fault on address %p. Page table at %p. Error %x\n", req_addr, p4_addr, err);
 
    if ((depth = pt_walk(p4_addr, req_addr, &ent)) == PAGE_TABLE_DEPTH) {
       printk("error: invalid page fault\n");
