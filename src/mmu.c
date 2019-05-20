@@ -248,12 +248,13 @@ void *MMU_alloc_page()
 
    ret = mmu_state.next_kernel_heap_vaddr;
    mmu_state.next_kernel_heap_vaddr -= PAGE_SIZE;
+   PT_demand_allocate(ret);
    return ret;
 }
 
 void MMU_free_page(void *vaddr)
 {
-   void *addr = PT_addr_virt_to_phys(mmu_state.page_table, vaddr);
+   void *addr = PT_addr_virt_to_phys(vaddr);
 
    if (!addr || (uint64_t)addr % PAGE_SIZE) {
       printk("error: attempting to free invalid address\n");
