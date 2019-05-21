@@ -19,17 +19,17 @@ isr_{0}:
 isr_error = """\
 global isr_{0}
 isr_{0}:
+    push rsi
+    mov rsi, [rsp + 8]
     push r10
     push r11
     push rdi
-    push rsi
     push rdx
     push rcx
     push r8
     push r9
     push rax
     mov rdi, {0}
-    mov rsi, [rsp + 16]
     jmp isr_error
 """
 

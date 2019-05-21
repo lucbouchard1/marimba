@@ -26,9 +26,9 @@ isr_error:
    pop r8
    pop rcx
    pop rdx
-   pop rsi
    pop rdi
    pop r11
    pop r10
+   pop rsi
    add rsp, 8    ; Remove error code from stack
    iretq
