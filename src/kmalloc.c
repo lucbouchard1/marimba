@@ -83,15 +83,15 @@ void *kmalloc(size_t size)
    int num_pages;
    struct KmallocBlockHeader *ret;
 
-   if (size < 64)
+   if (size + HEADER_SIZE <= 64)
       ret = kmalloc_alloc(&pool_64);
-   else if (size < 128)
+   else if (size + HEADER_SIZE <= 128)
       ret = kmalloc_alloc(&pool_128);
-   else if (size < 512)
+   else if (size + HEADER_SIZE <= 512)
       ret = kmalloc_alloc(&pool_512);
-   else if (size < 1024)
+   else if (size + HEADER_SIZE < 1024)
       ret = kmalloc_alloc(&pool_1024);
-   else if (size < 2048)
+   else if (size + HEADER_SIZE < 2048)
       ret = kmalloc_alloc(&pool_2048);
    else {
       num_pages = size / PAGE_SIZE;
