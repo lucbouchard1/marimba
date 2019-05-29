@@ -5,6 +5,7 @@
 #include "string.h"
 #include "utils.h"
 #include "mmap.h"
+#include "interrupts.h"
 
 #define MAX_FREE_SEGMENTS 32
 #define MAX_EXCLUDE_SEGMENTS 128
@@ -192,7 +193,7 @@ int MMU_init(struct PhysicalMMap *map)
    ex_head = mmu_compute_excluded(map, excluded);
    mmu_compute_free_segments(&mmu_state, map, ex_head);
 
-   mmu_state.next_kernel_heap_vaddr = (void *)(MMAP_KERNEL_HEAP_END - PAGE_SIZE);
+   mmu_state.next_kernel_heap_vaddr = (void *)(MMAP_KERNEL_HEAP_START);
    mmu_state.page_table = MMU_alloc_frame();
    if (!mmu_state.page_table)
       return -1;
@@ -241,15 +242,41 @@ void *MMU_alloc_page()
 {
    void *ret;
 
-   if (mmu_state.next_kernel_heap_vaddr == (void *)MMAP_KERNEL_HEAP_START) {
+   IRQ_disable();
+
+   if (mmu_state.next_kernel_heap_vaddr == (void *)MMAP_KERNEL_HEAP_END) {
       printk("error: out of kernel heap virtual addresses\n");
       return NULL;
    }
 
    ret = mmu_state.next_kernel_heap_vaddr;
-   mmu_state.next_kernel_heap_vaddr -= PAGE_SIZE;
+   mmu_state.next_kernel_heap_vaddr += PAGE_SIZE;
    PT_demand_allocate(ret);
+
+   IRQ_enable();
    return ret;
+}
+
+void *MMU_alloc_pages(int num_pages)
+{
+   void *first_page;
+   int i;
+
+   if (num_pages <= 0)
+      return NULL;
+
+   IRQ_disable();
+
+   first_page = MMU_alloc_page();
+   if (!first_page)
+      return NULL;
+
+   for (i = 0; i < num_pages-1; i++)
+      if (!MMU_alloc_page())
+         return NULL;
+
+   IRQ_enable();
+   return first_page;
 }
 
 void MMU_free_page(void *vaddr)
@@ -262,6 +289,20 @@ void MMU_free_page(void *vaddr)
    }
 
    MMU_free_frame(addr);
+}
+
+void MMU_free_pages(void *vaddr, int num_pages)
+{
+   uint8_t *addr = PT_addr_virt_to_phys(vaddr);
+   int i;
+
+   if (!addr || (uint64_t)addr % PAGE_SIZE) {
+      printk("error: attempting to free invalid address\n");
+      return;
+   }
+
+   for (i = 0; i < num_pages; i++)
+      MMU_free_frame(&addr[PAGE_SIZE*i]);
 }
 
 void MMU_stress_test()
