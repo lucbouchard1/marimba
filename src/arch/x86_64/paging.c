@@ -4,6 +4,7 @@
 #include "../../printk.h"
 #include "../../mmap.h"
 #include "../../mmu.h"
+#include "../../klog.h"
 
 #include <stdint.h>
 
@@ -97,21 +98,21 @@ static void page_fault_handler(int irq, int err, void *arg)
    req_addr = pt_get_req_vaddr();
    p4_addr = pt_get_addr();
 
-   printk("Page fault on address %p. Page table at %p. Error %x\n", req_addr, p4_addr, err);
+   klog(KLOG_LEVEL_DEBUG, "page fault on address %p. Page table at %p. Error %x", req_addr, p4_addr, err);
 
    if ((depth = pt_walk(p4_addr, req_addr, &ent)) == PAGE_TABLE_DEPTH) {
-      printk("error: invalid page fault\n");
+      klog(KLOG_LEVEL_WARN, "invalid page fault");
       return;
    }
 
    if (!ent->demand_allocate || depth != PAGE_TABLE_DEPTH - 1) {
-      printk("error: unhandled page fault\n");
+      klog(KLOG_LEVEL_WARN, "unhandled page fault");
       return;
    }
 
    frame = MMU_alloc_frame();
    if (!frame) {
-      printk("error: out of memory\n");
+      klog(KLOG_LEVEL_CRIT, "out of memory");
       return;
    }
    pte_set_addr(ent, frame);
@@ -150,14 +151,14 @@ int PT_demand_allocate(void *vaddr)
 
    depth = pt_walk(p4_addr, vaddr, &ent);
    if (depth == PAGE_TABLE_DEPTH) {
-      printk("error: allocation attempted twice on virtual address %p\n", vaddr);
+      klog(KLOG_LEVEL_WARN, "allocation attempted twice on virtual address %p", vaddr);
       return -1;
    }
 
    for (; depth < PAGE_TABLE_DEPTH-1; depth++) {
       new_pt = MMU_alloc_frame();
       if (!new_pt) {
-         printk("error: out of memory\n");
+         klog(KLOG_LEVEL_CRIT, "out of memory");
          return -1;
       }
       init_empty_page_table(new_pt);

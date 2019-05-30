@@ -1,6 +1,7 @@
 #include "elf.h"
 #include "printk.h"
 #include "utils.h"
+#include "klog.h"
 
 struct ELFSectionHeader {
    uint32_t sym_str_table_idx;
@@ -23,7 +24,7 @@ int ELF_parse_section_headers(struct PhysicalMMap *mmap, void *start,
    int i;
 
    if (num_headers > MAX_KERNEL_SECTIONS) {
-      printk("error: max kernel sections exceeded in elf file\n");
+      klog(KLOG_LEVEL_EMERG, "max kernel sections exceeded in elf file");
       return -1;
    }
 

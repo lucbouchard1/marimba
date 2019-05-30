@@ -1,6 +1,7 @@
 #include "../../io.h"
 #include "../../printk.h"
 #include "../../string.h"
+#include "../../klog.h"
 #include "keyboard.h"
 
 #define PS2_DATA_PORT 0x60
@@ -143,7 +144,7 @@ struct KeyboardDevice *init_ps2(int enable_interrupts)
    /* Perform self-test */
    resp = ps2_read_cmd(PS2_CMD_P1_SELF_TEST);
    if (resp != 0x55)
-      printk("error: PS2 port 1 failed self check\n");
+      klog(KLOG_LEVEL_ERR, "PS2 port 1 failed self check");
 
    /* Re-write controller configuration back out */
    ps2_write_cmd(PS2_CMD_WRITE_CNTL_CFG, cntl_cfg);
@@ -151,7 +152,7 @@ struct KeyboardDevice *init_ps2(int enable_interrupts)
    /* Perform interface test */
    resp = ps2_read_cmd(PS2_CMD_P1_INTERFACE_TEST);
    if (resp != 0x00)
-      printk("error: PS2 port 1 interface test failed\n");
+      klog(KLOG_LEVEL_ERR, "PS2 port 1 interface test failed");
 
    outb(PS2_CMD_PORT, PS2_CMD_ENABLE_P1);
 
@@ -159,10 +160,10 @@ struct KeyboardDevice *init_ps2(int enable_interrupts)
    ps2_write_data_p1(0xFF);
    resp = ps2_read_data_p1();
    if (resp != 0xFA)
-      printk("error: PS2 device did not reset\n");
+      klog(KLOG_LEVEL_ERR, "PS2 device did not reset");
    resp = ps2_read_data_p1();
    if (resp != 0xAA)
-      printk("error: PS2 device did not reset\n");
+      klog(KLOG_LEVEL_ERR, "PS2 device did not reset");
 
    return (struct KeyboardDevice *)&gdev;
 }

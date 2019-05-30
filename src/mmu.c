@@ -6,6 +6,7 @@
 #include "utils.h"
 #include "mmap.h"
 #include "interrupts.h"
+#include "klog.h"
 
 #define MAX_FREE_SEGMENTS 32
 #define MAX_EXCLUDE_SEGMENTS 128
@@ -186,7 +187,7 @@ int MMU_init(struct PhysicalMMap *map)
    memset(&mmu_state, 0, sizeof(struct MMUState));
 
    if (map->num_kernel_sects > MAX_EXCLUDE_SEGMENTS) {
-      printk("error: too many kernel segments for MMU\n");
+      klog(KLOG_LEVEL_EMERG, "too many kernel segments for MMU");
       return -1;
    }
 
@@ -245,7 +246,7 @@ void *MMU_alloc_page()
    IRQ_disable();
 
    if (mmu_state.next_kernel_heap_vaddr == (void *)MMAP_KERNEL_HEAP_END) {
-      printk("error: out of kernel heap virtual addresses\n");
+      klog(KLOG_LEVEL_EMERG, "out of kernel heap virtual addresses");
       return NULL;
    }
 
@@ -284,7 +285,7 @@ void MMU_free_page(void *vaddr)
    void *addr = PT_addr_virt_to_phys(vaddr);
 
    if (!addr || (uint64_t)addr % PAGE_SIZE) {
-      printk("error: attempting to free invalid address\n");
+      klog(KLOG_LEVEL_WARN, "attempting to free invalid address");
       return;
    }
 
@@ -297,7 +298,7 @@ void MMU_free_pages(void *vaddr, int num_pages)
    int i;
 
    if (!addr || (uint64_t)addr % PAGE_SIZE) {
-      printk("error: attempting to free invalid address\n");
+      klog(KLOG_LEVEL_WARN, "attempting to free invalid address");
       return;
    }
 

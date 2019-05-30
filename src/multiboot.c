@@ -2,6 +2,7 @@
 #include "printk.h"
 #include "elf.h"
 #include "utils.h"
+#include "klog.h"
 
 #define MULTIBOOT2_BOOTLOADER_MAGIC 0x36d76289
 
@@ -64,7 +65,7 @@ static int parse_mmap(struct MultibootMMapTag *mmap, struct PhysicalMMap *dest)
          continue;
 
       if (dest->num_mmap == MAX_MMAP_ENTRIES) {
-         printk("error: max mmap entries exceeded in multiboot info\n");
+         klog(KLOG_LEVEL_EMERG, "max mmap entries exceeded in multiboot info");
          return -1;
       }
 
@@ -90,7 +91,7 @@ int MB_parse_multiboot(struct PhysicalMMap *dest, uint32_t mb_magic, uint32_t mb
    struct MultibootTag *tag = int_to_ptr(mb_addr + 8);
 
    if (mb_magic != MULTIBOOT2_BOOTLOADER_MAGIC) {
-      printk("error: OS not booted by multiboot complient bootloader\n");
+      klog(KLOG_LEVEL_EMERG, "OS not booted by multiboot compliant bootloader");
       return -1;
    }
 

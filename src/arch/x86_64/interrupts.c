@@ -3,6 +3,7 @@
 #include "../../string.h"
 #include "../../io.h"
 #include "../../atomic.h"
+#include "../../klog.h"
 
 extern void IDT_init();
 
@@ -82,7 +83,7 @@ void IRQ_set_mask(unsigned char irq) {
    int IRQline = irq - PIC_MASTER_REMAP_BASE;
 
    if (IRQline < 0 || IRQline > 0x2F) {
-      printk("error: masking not supported on irq %d\n", irq);
+      klog(KLOG_LEVEL_ERR, "masking not supported on irq %d", irq);
       return;
    }
 
@@ -102,7 +103,7 @@ void IRQ_clear_mask(unsigned char irq) {
    int IRQline = irq - PIC_MASTER_REMAP_BASE;
 
    if (IRQline < 0 || IRQline > 0x2F) {
-      printk("error: masking not supported on irq %d\n", irq);
+      klog(KLOG_LEVEL_ERR, "masking not supported on irq %d", irq);
       return;
    }
 
@@ -121,7 +122,7 @@ void IRQ_end_of_interrupt(unsigned char irq)
    int IRQline = irq - PIC_MASTER_REMAP_BASE;
 
    if (IRQline < 0 || IRQline > 0x2F) {
-      printk("error: end of interrupt not supported on irq %d\n", irq);
+      klog(KLOG_LEVEL_ERR, "end of interrupt not supported on irq %d", irq);
       return;
    }
 
@@ -135,7 +136,7 @@ void IRQ_generic_isr(uint32_t irq)
    if (handlers[irq].handler)
       handlers[irq].handler(irq, 0, handlers[irq].arg);
    else
-      printk("Received unhandled interrupt: 0x%X\n", irq);
+      klog(KLOG_LEVEL_INFO, "received unhandled interrupt: 0x%X", irq);
 
    if (irq >= PIC_MASTER_REMAP_BASE && irq <= (PIC_MASTER_REMAP_BASE + 0x2F))
       PIC_sendEOI(irq - PIC_MASTER_REMAP_BASE);
@@ -150,7 +151,7 @@ void IRQ_generic_isr_error(uint32_t irq, uint32_t err)
    if (handlers[irq].handler)
       handlers[irq].handler(irq, err, handlers[irq].arg);
    else
-      printk("Received unhandled error interrupt: 0x%X 0x%X\n", irq, err);
+      klog(KLOG_LEVEL_INFO, "received unhandled error interrupt: 0x%X 0x%X", irq, err);
 
    if (irq >= PIC_MASTER_REMAP_BASE && irq <= (PIC_MASTER_REMAP_BASE + 0x2F))
       PIC_sendEOI(irq - PIC_MASTER_REMAP_BASE);
@@ -161,7 +162,7 @@ void IRQ_generic_isr_error(uint32_t irq, uint32_t err)
 void IRQ_set_handler(int irq, irq_handler_t handler, void *arg)
 {
    if (irq > 256 || irq < 0) {
-      printk("error: cannot setup interrupt handler on irq %d\n", irq);
+      klog(KLOG_LEVEL_WARN, "cannot setup interrupt handler on irq %d", irq);
       return;
    }
 
