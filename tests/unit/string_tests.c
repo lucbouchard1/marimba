@@ -1,5 +1,5 @@
 #include "CuTest.h"
-#include "../src/string.h"
+#include "../../src/string.h"
 
 void Test_memset(CuTest *tc)
 {

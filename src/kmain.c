@@ -11,6 +11,10 @@
 
 static struct PhysicalMMap map;
 
+#ifdef STRESS_TEST
+extern void stress_test();
+#endif
+
 void keyboard_isr(int irq, int err, void *arg)
 {
    struct KeyboardDevice *dev = (struct KeyboardDevice *)arg;
@@ -44,9 +48,10 @@ void kmain(uint32_t mb_magic, uint32_t mb_addr)
             map.kernel_sects[i].length, map.kernel_sects[i].section_name);
 
    MMU_init(&map);
-   //MMU_stress_test();
 
-   kmalloc_stress_test();
+   #ifdef STRESS_TEST
+   stress_test();
+   #endif
 
    kdev = init_ps2(1);
    IRQ_set_handler(0x21, keyboard_isr, kdev);

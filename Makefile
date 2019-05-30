@@ -9,17 +9,23 @@ CFLAGS += -g -Wall -Werror
 
 LINKER_SCRIPT := src/arch/$(ARCH)/scripts/linker.ld
 GRUB_CFG := src/arch/$(ARCH)/grub.cfg
-C_SRC = $(shell find src/ -path src/arch -prune -o -print | grep .c$$) \
+C_SRC := $(shell find src/ -path src/arch -prune -o -print | grep .c$$) \
 		$(shell make --no-print-directory -C src/arch/$(ARCH) c_src)
-C_OBJ = $(patsubst src/%.c, build/%.o, $(C_SRC))
-ASM_SRC = $(shell make --no-print-directory -C src/arch/$(ARCH) asm_src)
-ASM_OBJ = $(patsubst src/arch/$(ARCH)/%.asm, \
+C_OBJ := $(patsubst src/%.c, build/%.o, $(C_SRC))
+ASM_SRC := $(shell make --no-print-directory -C src/arch/$(ARCH) asm_src)
+ASM_OBJ := $(patsubst src/arch/$(ARCH)/%.asm, \
 		build/arch/$(ARCH)/%.o, $(ASM_SRC))
 
-TESTS_C_SRC := $(wildcard tests/*.c)
+TESTS_C_SRC := $(wildcard tests/unit/*.c)
 TESTS_C_OBJ := $(patsubst tests/%.c, tests/%.o, $(TESTS_C_SRC)) \
 		tests/string.o tests/utils.o
 TESTS_EXECUTABLE = run_tests
+
+ifeq ($(STRESS_TEST),y)
+CFLAGS+=-DSTRESS_TEST
+C_SRC += tests/integrated/stress.c
+C_OBJ += build/stress.o
+endif
 
 .PHONY: run clean test arch
 
@@ -59,6 +65,10 @@ build/arch/$(ARCH)/%.o: src/arch/$(ARCH)/%.asm
 	nasm -g -f elf64 -o $@ $<
 
 build/%.o: src/%.c
+	@mkdir -p $(shell dirname $@)
+	$(TARGET_CC) -DARCH=$(ARCH) $(CFLAGS) -mno-red-zone -ffreestanding -c -o $@ $<
+
+build/%.o: tests/integrated/%.c
 	@mkdir -p $(shell dirname $@)
 	$(TARGET_CC) -DARCH=$(ARCH) $(CFLAGS) -mno-red-zone -ffreestanding -c -o $@ $<
 

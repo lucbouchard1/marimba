@@ -1,5 +1,5 @@
 #include "CuTest.h"
-#include "../src/utils.h"
+#include "../../src/utils.h"
 
 struct FakeData {
    int data;
