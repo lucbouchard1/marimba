@@ -33,4 +33,21 @@ struct PhysicalMMap {
    struct KernelSection kernel_sects[MAX_KERNEL_SECTIONS];
 };
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wint-to-pointer-cast"
+#pragma GCC diagnostic ignored "-Wpointer-to-int-cast"
+
+static inline offset_t ptr_to_int(void *p)
+{
+   return (offset_t)p;
+}
+
+static inline void *int_to_ptr(offset_t o)
+{
+   return (void *)o;
+}
+
+#pragma GCC diagnostic pop
+
+
 #endif

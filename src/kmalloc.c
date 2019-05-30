@@ -1,5 +1,6 @@
 #include "mmu.h"
 #include "printk.h"
+#include "types.h"
 
 #define HEADER_SIZE (sizeof(struct KmallocBlockHeader))
 #define PAGE_INCREASE_STEP 4
@@ -39,7 +40,7 @@ static struct KmallocPool pool_2048 = {
    .free_head = NULL
 };
 
-static int malloc_increase_pool(struct KmallocPool *pool, int num_pages)
+static int kmalloc_increase_pool(struct KmallocPool *pool, int num_pages)
 {
    int i, num_blocks;
    struct KmallocBlockHeader **prev, *cur;
@@ -68,17 +69,13 @@ struct KmallocBlockHeader *kmalloc_alloc(struct KmallocPool *pool)
 {
    void *ret;
 
-   if (!pool->free_head && malloc_increase_pool(pool, PAGE_INCREASE_STEP) < 0)
+   if (!pool->free_head && kmalloc_increase_pool(pool, PAGE_INCREASE_STEP) < 0)
          return NULL;
 
    ret = pool->free_head;
    pool->free_head = pool->free_head->next;
    return ret;
 }
-
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wint-to-pointer-cast"
-#pragma GCC diagnostic ignored "-Wpointer-to-int-cast"
 
 void *kmalloc(size_t size)
 {
@@ -106,7 +103,7 @@ void *kmalloc(size_t size)
       if (!ret)
          return NULL;
       ret->pool = NULL;
-      ret->next = (struct KmallocBlockHeader *)num_pages;
+      ret->next = int_to_ptr(num_pages); // Repurpose the "next" pointer
    }
 
    if (!ret)
@@ -120,7 +117,7 @@ void kfree(void *addr)
    struct KmallocPool *pool;
 
    if (!block->pool) {
-      MMU_free_pages(block, (int)block->next);
+      MMU_free_pages(block, ptr_to_int(block->next));
       return;
    }
 
@@ -187,5 +184,3 @@ void kmalloc_stress_test()
    }
    printk("done\n");
 }
-
-#pragma GCC diagnostic pop

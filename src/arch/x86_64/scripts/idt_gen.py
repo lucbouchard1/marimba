@@ -7,15 +7,14 @@ irq_ist_map = {
 }
 
 target_offset_setup = """\
-   template.target_0_15 = (uint16_t)isr_{0};
-   template.target_16_31 = (uint16_t)((uint64_t)isr_{0} >> 16);
-   template.target_32_63 = (uint32_t)((uint64_t)isr_{0} >> 32);\
+   template.target_0_15 = (uint16_t)ptr_to_int(isr_{0});
+   template.target_16_31 = (uint16_t)(ptr_to_int(isr_{0}) >> 16);
+   template.target_32_63 = (uint32_t)(ptr_to_int(isr_{0}) >> 32);\
 """
 
 print('#include "../../string.h"')
+print('#include "../../types.h"')
 print('#include <stdint.h>')
-print('#pragma GCC diagnostic push')
-print('#pragma GCC diagnostic ignored "-Wpointer-to-int-cast"')
 
 for irq in range(256):
     print('extern int isr_{0}();'.format(irq))
@@ -62,4 +61,3 @@ print('   IDT_desc.length =  (sizeof(struct IDTEntry)*256) - 1;')
 print('   IDT_desc.base = &IDT[0];')
 print('   asm ( "lidt %0" : : "m"(IDT_desc) );')
 print('}')
-print('#pragma GCC diagnostic pop')
