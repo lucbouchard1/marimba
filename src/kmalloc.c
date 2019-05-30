@@ -1,4 +1,5 @@
 #include "mmu.h"
+#include "printk.h"
 
 #define HEADER_SIZE (sizeof(struct KmallocBlockHeader))
 #define PAGE_INCREASE_STEP 4
@@ -52,8 +53,9 @@ static int malloc_increase_pool(struct KmallocPool *pool, int num_pages)
    num_blocks = (num_pages * PAGE_SIZE) / pool->block_size;
 
    prev = &pool->free_head;
-   for (i = 0; i < num_blocks; i++) {
-      *prev = &cur[i];
+   for (i = 0; i < num_blocks; i++,
+         cur = (struct KmallocBlockHeader *)((uint8_t *)cur + pool->block_size)) {
+      *prev = cur;
       cur->pool = pool;
       cur->next = NULL;
       prev = &cur->next;
@@ -82,6 +84,9 @@ void *kmalloc(size_t size)
 {
    int num_pages;
    struct KmallocBlockHeader *ret;
+
+   if (!size)
+      return NULL;
 
    if (size + HEADER_SIZE <= 64)
       ret = kmalloc_alloc(&pool_64);
@@ -122,6 +127,24 @@ void kfree(void *addr)
    pool = block->pool;
    block->next = pool->free_head;
    pool->free_head = block;
+}
+
+void kmalloc_stress_test()
+{
+   int i, *temp[100];
+   const int count = 5;
+
+   printk("Incrementing %d blocks of int size...\n", count);
+   for (i = 0; i < count; i++) {
+      temp[i] = kmalloc(sizeof(int));
+      *temp[i] = i;
+   }
+
+   for (i = count-1; i >= 0; i--) {
+      if (*temp[i] != i)
+         printk("error: found invalid write code\n");
+      kfree(temp[i]);
+   }
 }
 
 #pragma GCC diagnostic pop
