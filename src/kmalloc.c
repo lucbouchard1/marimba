@@ -2,8 +2,8 @@
 #include "printk.h"
 #include "types.h"
 
-#define HEADER_SIZE (sizeof(struct KmallocBlockHeader))
-#define PAGE_INCREASE_STEP 4
+#define POOL_PAGE_INCREASE 4
+#define NUM_POOLS 6
 
 struct KmallocBlockHeader {
    struct KmallocPool *pool;
@@ -15,34 +15,31 @@ struct KmallocPool {
    struct KmallocBlockHeader *free_head;
 };
 
-static struct KmallocPool pool_32 = {
-   .block_size = 32,
-   .free_head = NULL
-};
-
-static struct KmallocPool pool_64 = {
-   .block_size = 64,
-   .free_head = NULL
-};
-
-static struct KmallocPool pool_128 = {
-   .block_size = 128,
-   .free_head = NULL
-};
-
-static struct KmallocPool pool_512 = {
-   .block_size = 512,
-   .free_head = NULL
-};
-
-static struct KmallocPool pool_1024 = {
-   .block_size = 1024,
-   .free_head = NULL
-};
-
-static struct KmallocPool pool_2048 = {
-   .block_size = 2048,
-   .free_head = NULL
+static struct KmallocPool pools[] = {
+   {
+      .block_size = 32,
+      .free_head = NULL
+   },
+   {
+      .block_size = 64,
+      .free_head = NULL
+   },
+   {
+      .block_size = 128,
+      .free_head = NULL
+   },
+   {
+      .block_size = 512,
+      .free_head = NULL
+   },
+   {
+      .block_size = 1024,
+      .free_head = NULL
+   },
+   {
+      .block_size = 2048,
+      .free_head = NULL
+   }
 };
 
 static int kmalloc_increase_pool(struct KmallocPool *pool, int num_pages)
@@ -74,7 +71,7 @@ struct KmallocBlockHeader *kmalloc_alloc(struct KmallocPool *pool)
 {
    void *ret;
 
-   if (!pool->free_head && kmalloc_increase_pool(pool, PAGE_INCREASE_STEP) < 0)
+   if (!pool->free_head && kmalloc_increase_pool(pool, POOL_PAGE_INCREASE) < 0)
          return NULL;
 
    ret = pool->free_head;
@@ -84,37 +81,32 @@ struct KmallocBlockHeader *kmalloc_alloc(struct KmallocPool *pool)
 
 void *kmalloc(size_t size)
 {
-   int num_pages;
-   struct KmallocBlockHeader *ret;
+   int num_pages, i;
+   struct KmallocBlockHeader *ret = NULL;
 
    if (!size)
       return NULL;
 
-   if (size + HEADER_SIZE <= 32)
-      ret = kmalloc_alloc(&pool_32);
-   else if (size + HEADER_SIZE <= 64)
-      ret = kmalloc_alloc(&pool_64);
-   else if (size + HEADER_SIZE <= 128)
-      ret = kmalloc_alloc(&pool_128);
-   else if (size + HEADER_SIZE <= 512)
-      ret = kmalloc_alloc(&pool_512);
-   else if (size + HEADER_SIZE <= 1024)
-      ret = kmalloc_alloc(&pool_1024);
-   else if (size + HEADER_SIZE <= 2048)
-      ret = kmalloc_alloc(&pool_2048);
-   else {
+   for (i = 0; i < NUM_POOLS; i++) {
+      if (size + sizeof(struct KmallocBlockHeader) <= pools[i].block_size) {
+         if (!(ret = kmalloc_alloc(&pools[i])))
+            return NULL;
+         break;
+      }
+   }
+
+   if (!ret) {
       num_pages = size / PAGE_SIZE;
       if (size % PAGE_SIZE)
          num_pages++;
       ret = MMU_alloc_pages(num_pages);
       if (!ret)
          return NULL;
+      /* Repurpose the block header to store number of allocated pages */
       ret->pool = NULL;
-      ret->next = int_to_ptr(num_pages); // Repurpose the "next" pointer to store num pages
+      ret->next = int_to_ptr(num_pages);
    }
 
-   if (!ret)
-      return NULL;
    return ret + 1;
 }
 
