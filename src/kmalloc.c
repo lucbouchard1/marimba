@@ -15,6 +15,11 @@ struct KmallocPool {
    struct KmallocBlockHeader *free_head;
 };
 
+static struct KmallocPool pool_32 = {
+   .block_size = 32,
+   .free_head = NULL
+};
+
 static struct KmallocPool pool_64 = {
    .block_size = 64,
    .free_head = NULL
@@ -85,15 +90,17 @@ void *kmalloc(size_t size)
    if (!size)
       return NULL;
 
-   if (size + HEADER_SIZE <= 64)
+   if (size + HEADER_SIZE <= 32)
+      ret = kmalloc_alloc(&pool_32);
+   else if (size + HEADER_SIZE <= 64)
       ret = kmalloc_alloc(&pool_64);
    else if (size + HEADER_SIZE <= 128)
       ret = kmalloc_alloc(&pool_128);
    else if (size + HEADER_SIZE <= 512)
       ret = kmalloc_alloc(&pool_512);
-   else if (size + HEADER_SIZE < 1024)
+   else if (size + HEADER_SIZE <= 1024)
       ret = kmalloc_alloc(&pool_1024);
-   else if (size + HEADER_SIZE < 2048)
+   else if (size + HEADER_SIZE <= 2048)
       ret = kmalloc_alloc(&pool_2048);
    else {
       num_pages = size / PAGE_SIZE;
@@ -103,7 +110,7 @@ void *kmalloc(size_t size)
       if (!ret)
          return NULL;
       ret->pool = NULL;
-      ret->next = int_to_ptr(num_pages); // Repurpose the "next" pointer
+      ret->next = int_to_ptr(num_pages); // Repurpose the "next" pointer to store num pages
    }
 
    if (!ret)
