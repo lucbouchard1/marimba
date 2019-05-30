@@ -30,9 +30,6 @@ struct PTE {
 static struct PTE identity_p3[PAGE_TABLE_NUM_ENTS] __attribute__ ((aligned (4096)));
 static struct PTE identity_p2[PAGE_TABLE_NUM_ENTS] __attribute__ ((aligned (4096)));
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wint-to-pointer-cast"
-
 static inline void init_empty_page_table(void *pt)
 {
    memset(pt, 0, sizeof(struct PTE)*PAGE_TABLE_NUM_ENTS);
@@ -47,7 +44,7 @@ static inline void pte_set_addr(struct PTE *ent, void *addr)
 
 static inline void *pte_get_addr(struct PTE *ent)
 {
-   return (void *)(ent->address << 12);
+   return int_to_ptr(ent->address << 12);
 }
 
 static inline void *pt_get_addr()
@@ -130,7 +127,7 @@ void PT_init(struct PhysicalMMap *map)
 
    /* Initialize second level identity page table */
    for (i = 0; i < PAGE_TABLE_NUM_ENTS; i++) {
-      pte_set_addr(&identity_p2[i], (void *)(i*HUGE_PAGE_FRAME_SIZE));
+      pte_set_addr(&identity_p2[i], int_to_ptr(i*HUGE_PAGE_FRAME_SIZE));
       identity_p2[i].huge_page = 1;
    }
 
@@ -144,7 +141,6 @@ void PT_page_table_init(void *addr)
    init_empty_page_table(p4_addr);
    pte_set_addr(p4_addr, identity_p3);
 }
-#pragma GCC diagnostic pop
 
 int PT_demand_allocate(void *vaddr)
 {

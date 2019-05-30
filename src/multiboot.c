@@ -53,9 +53,6 @@ struct MultibootELFTag {
    char sections[1];
 } __attribute__((packed));
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wint-to-pointer-cast"
-
 static int parse_mmap(struct MultibootMMapTag *mmap, struct PhysicalMMap *dest)
 {
    struct MultibootMMapEntry *curr = mmap->entries;
@@ -90,7 +87,7 @@ static int parse_elf(struct MultibootELFTag *elf, struct PhysicalMMap *dest)
 
 int MB_parse_multiboot(struct PhysicalMMap *dest, uint32_t mb_magic, uint32_t mb_addr)
 {
-   struct MultibootTag *tag = (struct MultibootTag *) (mb_addr + 8);
+   struct MultibootTag *tag = int_to_ptr(mb_addr + 8);
 
    if (mb_magic != MULTIBOOT2_BOOTLOADER_MAGIC) {
       printk("error: OS not booted by multiboot complient bootloader\n");
@@ -117,5 +114,3 @@ int MB_parse_multiboot(struct PhysicalMMap *dest, uint32_t mb_magic, uint32_t mb
 
    return 0;
 }
-
-#pragma GCC diagnostic pop
