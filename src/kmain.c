@@ -28,8 +28,6 @@ void keyboard_isr(int irq, int err, void *arg)
 void kmain(uint32_t mb_magic, uint32_t mb_addr)
 {
    struct KeyboardDevice *kdev;
-   int i;
-   //long delay;
 
    VGA_clear();
    HW_init();
@@ -37,18 +35,6 @@ void kmain(uint32_t mb_magic, uint32_t mb_addr)
    klog(KLOG_LEVEL_INFO, "starting up kernel");
 
    MB_parse_multiboot(&map, mb_magic, mb_addr);
-
-   printk("Total Memory %ld\n", map.total_ram);
-
-   printk("Ram MMAP:\n");
-   for (i = 0; i < map.num_mmap; i++)
-      printk("Addr: %p   Len: %lx\n",
-            map.ram_sects[i].base, map.ram_sects[i].length);
-
-   printk("\nKernel Sections:\n");
-   for (i = 0; i < map.num_kernel_sects; i++)
-      printk("Addr: %p   Len: 0x%lx   Name: %s\n", map.kernel_sects[i].base,
-            map.kernel_sects[i].length, map.kernel_sects[i].section_name);
 
    MMU_init(&map);
 
