@@ -132,9 +132,9 @@ void kfree(void *addr)
 void kmalloc_stress_test()
 {
    int i, *temp[100];
-   const int count = 5;
+   int count = 100;
 
-   printk("Incrementing %d blocks of int size...\n", count);
+   printk("Allocating %d %ld byte blocks and testing allocation...\n", count, sizeof(int));
    for (i = 0; i < count; i++) {
       temp[i] = kmalloc(sizeof(int));
       *temp[i] = i;
@@ -145,6 +145,47 @@ void kmalloc_stress_test()
          printk("error: found invalid write code\n");
       kfree(temp[i]);
    }
+   printk("done\n");
+
+   printk("Allocating %d %ld byte blocks and testing allocation again...\n", count, sizeof(int));
+   for (i = 0; i < count; i++) {
+      temp[i] = kmalloc(sizeof(int));
+      *temp[i] = i;
+   }
+
+   for (i = count-1; i >= 0; i--) {
+      if (*temp[i] != i)
+         printk("error: found invalid write code\n");
+      kfree(temp[i]);
+   }
+   printk("done\n");
+
+   printk("Allocating %d %ld byte blocks and testing allocation...\n", count, count*sizeof(int));
+   for (i = 0; i < count; i++) {
+      temp[i] = kmalloc(count*sizeof(int));
+      temp[i][i] = i;
+   }
+
+   for (i = count-1; i >= 0; i--) {
+      if (temp[i][i] != i)
+         printk("error: found invalid write code\n");
+      kfree(temp[i]);
+   }
+   printk("done\n");
+
+   count = 10;
+   printk("Allocating %d %ld byte blocks and testing allocation...\n", count, 10000*sizeof(int));
+   for (i = 0; i < count; i++) {
+      temp[i] = kmalloc(10000*sizeof(int));
+      temp[i][10*i] = i;
+   }
+
+   for (i = count-1; i >= 0; i--) {
+      if (temp[i][10*i] != i)
+         printk("error: found invalid write code\n");
+      kfree(temp[i]);
+   }
+   printk("done\n");
 }
 
 #pragma GCC diagnostic pop

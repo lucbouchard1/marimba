@@ -5,6 +5,7 @@
 #include "hw_init.h"
 #include "mmu.h"
 #include "multiboot.h"
+#include "kmalloc.h"
 #include "drivers/keyboard/keyboard.h"
 #include "drivers/serial/serial.h"
 
@@ -44,6 +45,8 @@ void kmain(uint32_t mb_magic, uint32_t mb_addr)
 
    MMU_init(&map);
    //MMU_stress_test();
+
+   kmalloc_stress_test();
 
    kdev = init_ps2(1);
    IRQ_set_handler(0x21, keyboard_isr, kdev);
