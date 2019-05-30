@@ -153,7 +153,7 @@ int PT_demand_allocate(void *vaddr)
    int depth;
 
    depth = pt_walk(p4_addr, vaddr, &ent);
-   if (depth >= PAGE_TABLE_DEPTH-1) {
+   if (depth == PAGE_TABLE_DEPTH) {
       printk("error: allocation attempted twice on virtual address %p\n", vaddr);
       return -1;
    }
