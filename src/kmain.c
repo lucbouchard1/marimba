@@ -6,6 +6,7 @@
 #include "mmu.h"
 #include "multiboot.h"
 #include "kmalloc.h"
+#include "debug.h"
 #include "drivers/keyboard/keyboard.h"
 #include "drivers/serial/serial.h"
 
@@ -32,6 +33,8 @@ void kmain(uint32_t mb_magic, uint32_t mb_addr)
 
    VGA_clear();
    HW_init();
+
+   klog(DBG_LEVEL_INFO, "Starting up kernel");
 
    MB_parse_multiboot(&map, mb_magic, mb_addr);
 
