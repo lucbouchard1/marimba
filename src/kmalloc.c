@@ -69,13 +69,14 @@ static int kmalloc_increase_pool(struct KmallocPool *pool, int num_pages)
 
 struct KmallocBlockHeader *kmalloc_alloc(struct KmallocPool *pool)
 {
-   void *ret;
+   struct KmallocBlockHeader *ret;
 
    if (!pool->free_head && kmalloc_increase_pool(pool, POOL_PAGE_INCREASE) < 0)
          return NULL;
 
    ret = pool->free_head;
    pool->free_head = pool->free_head->next;
+   ret->next = NULL;
    return ret;
 }
 
