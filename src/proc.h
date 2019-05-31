@@ -22,4 +22,10 @@ extern struct Process *next_proc;
 void PROC_yield();
 int PROC_create_kthread(kproc_t entry_point, void *arg);
 
+#if ARCH == x86_64
+#include "arch/x86_64/proc.h"
+#else
+#error
+#endif
+
 #endif
