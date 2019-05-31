@@ -15,7 +15,7 @@ isr_asm_generic:
    push rbp
    mov rdx, rsp
    call IRQ_generic_isr
-   push rbp
+   pop rbp
    pop rax
    pop r9
    pop r8

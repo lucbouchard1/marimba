@@ -56,7 +56,7 @@ int PROC_create_kthread(kproc_t entry_point, void *arg)
    new->entry = entry_point;
    new->rsp = ptr_to_int(new->stack);
    new->rip = ptr_to_int(&thread_entry);
-   new->cs = 0x8;
+   new->cs = 0x10;
 
    new->next = proc.ready;
    proc.ready = new;
