@@ -10,5 +10,6 @@ void *MMU_alloc_page();
 void *MMU_alloc_pages(int num_pages);
 void MMU_free_page(void *addr);
 void MMU_free_pages(void *addr, int num_pages);
+void *MMU_alloc_stack();
 
 #endif

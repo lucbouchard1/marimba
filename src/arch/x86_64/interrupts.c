@@ -6,6 +6,7 @@
 #include "../../klog.h"
 #include "../../syscall.h"
 #include "../../mmap.h"
+#include "../../proc.h"
 
 extern void IDT_init();
 
@@ -37,6 +38,11 @@ static struct IRQHandler {
    void *arg;
 } handlers[256];
 static atomic_t irq_semaphore;
+
+void save_context()
+{
+   
+}
 
 void PIC_init()
 {

@@ -29,6 +29,7 @@ struct MMUState {
    void *free_page_tail;
    void *page_table;
    uint8_t *next_kernel_heap_vaddr;
+   uint8_t *next_kernel_thread_stack_vaddr;
 };
 
 static struct MMUState mmu_state;
@@ -195,6 +196,7 @@ int MMU_init(struct PhysicalMMap *map)
    mmu_compute_free_segments(&mmu_state, map, ex_head);
 
    mmu_state.next_kernel_heap_vaddr = (void *)(MMAP_KERNEL_HEAP_START);
+   mmu_state.next_kernel_thread_stack_vaddr = (void *)(MMAP_KERNEL_STACKS_END-1);
    mmu_state.page_table = MMU_alloc_frame();
    if (!mmu_state.page_table)
       return -1;
@@ -304,4 +306,26 @@ void MMU_free_pages(void *vaddr, int num_pages)
 
    for (i = 0; i < num_pages; i++)
       MMU_free_frame(&addr[PAGE_SIZE*i]);
+}
+
+void *MMU_alloc_stack()
+{
+   void *ret;
+   int i;
+
+   IRQ_disable();
+
+   if (mmu_state.next_kernel_thread_stack_vaddr == (void *)MMAP_KERNEL_HEAP_START) {
+      klog(KLOG_LEVEL_EMERG, "out of kernel stacks virtual addresses");
+      return NULL;
+   }
+
+   ret = mmu_state.next_kernel_thread_stack_vaddr;
+   for (i = 0; i < KERNEL_THREAD_STACK_SIZE_PAGES; i++) {
+      PT_demand_allocate(mmu_state.next_kernel_thread_stack_vaddr);
+      mmu_state.next_kernel_thread_stack_vaddr -= PAGE_SIZE;
+   }
+
+   IRQ_enable();
+   return ret;
 }

@@ -26,6 +26,13 @@ void keyboard_isr(int irq, int err, void *arg)
    printk("%c", c);
 }
 
+void test_func(void *arg)
+{
+   int *val = (int *)arg;
+   printk("test: %d\n", *val);
+   yield();
+}
+
 void kmain(uint32_t mb_magic, uint32_t mb_addr)
 {
    struct KeyboardDevice *kdev;
