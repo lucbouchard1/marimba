@@ -1,6 +1,8 @@
 
+syscall_irq = 123
 
 irq_ist_map = {
+    syscall_irq: 1,      # Map system call interrupts to stack 1
     0xD: 2,      # Map GPF interrupts to stack 2
     0x8: 3,      # Map double fault interrupts to stack 3
     0xE: 4       # Map page fault interrupts to stack 4
@@ -37,7 +39,7 @@ struct IDTEntry {
 static struct IDTEntry template = {
    .type = 0xE,
    .present = 1,
-   .ist = 1,
+   .ist = 0,
    .target_selector = 0x10
 };
 static struct IDTEntry IDT[256];
@@ -53,6 +55,8 @@ print('{')
 for irq in range(256):
     print(target_offset_setup.format(irq))
     print('   IDT[{0}] = template;'.format(irq))
+    if irq == syscall_irq:
+        print('   IDT[{0}].type = 0xF;'.format(irq))
     if (irq in irq_ist_map):
         print('   IDT[{0}].ist = {1};'.format(irq, irq_ist_map[irq]))
     print('')

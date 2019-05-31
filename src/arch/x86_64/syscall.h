@@ -3,7 +3,7 @@
 
 static inline void yield(void)
 {
-   asm volatile ( "mov $10, %%rbx; INT $123;" : : : "rbx" );
+   asm volatile ( "mov $0, %%rbx; INT $123;" : : : "rbx" );
 }
 
 #endif
