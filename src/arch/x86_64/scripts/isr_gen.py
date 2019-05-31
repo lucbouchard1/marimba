@@ -14,6 +14,7 @@ isr_{0}:
     push r9
     push rax
     mov rdi, {0}
+    mov rsi, 0
     jmp isr_normal
 """
 

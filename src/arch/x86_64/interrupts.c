@@ -5,6 +5,7 @@
 #include "../../atomic.h"
 #include "../../klog.h"
 #include "../../syscall.h"
+#include "../../mmap.h"
 
 extern void IDT_init();
 
@@ -130,22 +131,7 @@ void IRQ_end_of_interrupt(unsigned char irq)
    PIC_sendEOI(IRQline);    
 }
 
-void IRQ_generic_isr(uint32_t irq)
-{
-   atomic_add(&irq_semaphore, 1); /* Interrupts are disabled by hardware in handler */
-
-   if (handlers[irq].handler)
-      handlers[irq].handler(irq, 0, handlers[irq].arg);
-   else
-      klog(KLOG_LEVEL_INFO, "received unhandled interrupt: 0x%X", irq);
-
-   if (irq >= PIC_MASTER_REMAP_BASE && irq <= (PIC_MASTER_REMAP_BASE + 0x2F))
-      PIC_sendEOI(irq - PIC_MASTER_REMAP_BASE);
-
-   atomic_sub(&irq_semaphore, 1);;
-}
-
-void IRQ_generic_isr_error(uint32_t irq, uint32_t err)
+void IRQ_generic_isr(uint32_t irq, uint32_t err)
 {
    atomic_add(&irq_semaphore, 1); /* Interrupts are disabled by hardware in handler */
 
@@ -161,17 +147,6 @@ void IRQ_generic_isr_error(uint32_t irq, uint32_t err)
 }
 
 void IRQ_set_handler(int irq, irq_handler_t handler, void *arg)
-{
-   if (irq > 256 || irq < 0) {
-      klog(KLOG_LEVEL_WARN, "cannot setup interrupt handler on irq %d", irq);
-      return;
-   }
-
-   handlers[irq].handler = handler;
-   handlers[irq].arg = arg;
-}
-
-void IRQ_set_syscall_handler(int irq, trap_handler_t handler, void *arg)
 {
    if (irq > 256 || irq < 0) {
       klog(KLOG_LEVEL_WARN, "cannot setup interrupt handler on irq %d", irq);
@@ -201,6 +176,11 @@ void IRQ_disable()
    atomic_add(&irq_semaphore, 1);
 }
 
+void IRQ_syscall_handler(int irq, int err, void *arg)
+{
+   syscall_handler(err);
+}
+
 void IRQ_x86_64_init()
 {
    memset(handlers, 0, sizeof(struct IRQHandler)*256);
@@ -209,5 +189,8 @@ void IRQ_x86_64_init()
    IDT_init();
 
    irq_semaphore = 0;
+
+   IRQ_set_handler(SYSCALL_TRAP_NUMBER, IRQ_syscall_handler, NULL);
+
    STI;
 }

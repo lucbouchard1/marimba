@@ -1,6 +1,8 @@
 #ifndef __X86_64_MMAP_H__
 #define __X86_64_MMAP_H__
 
+#define SYSCALL_TRAP_NUMBER 123
+
 #define P4_PTE_ADDRESSES 0x10000000000
 
 #define MMAP_PHYSICAL_PAGES_START          0
