@@ -160,13 +160,6 @@ void IRQ_generic_isr_error(uint32_t irq, uint32_t err)
    atomic_sub(&irq_semaphore, 1);
 }
 
-void IRQ_syscall_handler(uint32_t num)
-{
-   atomic_add(&irq_semaphore, 1); /* Interrupts are disabled by hardware in handler */
-   syscall_handler(num);
-   atomic_sub(&irq_semaphore, 1);
-}
-
 void IRQ_set_handler(int irq, irq_handler_t handler, void *arg)
 {
    if (irq > 256 || irq < 0) {

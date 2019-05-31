@@ -3,7 +3,7 @@ global isr_error
 global isr_123
 extern IRQ_generic_isr
 extern IRQ_generic_isr_error
-extern IRQ_syscall_handler
+extern syscall_handler
 
 section .text
 bits 64
@@ -45,7 +45,7 @@ isr_123:
    push r9
    push rax
    mov rdi, rbx
-   call IRQ_syscall_handler
+   call syscall_handler
    pop rax
    pop r9
    pop r8
