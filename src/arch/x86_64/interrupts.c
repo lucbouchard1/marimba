@@ -39,9 +39,18 @@ static struct IRQHandler {
 } handlers[256];
 static atomic_t irq_semaphore;
 
-void save_context()
+void save_context(uint64_t *stack)
 {
-   
+  // printk("%p\n", stack);
+   curr_proc->rax = stack[0];
+   curr_proc->r9 = stack[1];
+   curr_proc->r8 = stack[2];
+   curr_proc->rcx = stack[3];
+   curr_proc->rdx = stack[4];
+   curr_proc->rdi = stack[5];
+   curr_proc->r11 = stack[6];
+   curr_proc->r10 = stack[7];
+   curr_proc->rsi = stack[8];
 }
 
 void PIC_init()
@@ -137,9 +146,11 @@ void IRQ_end_of_interrupt(unsigned char irq)
    PIC_sendEOI(IRQline);    
 }
 
-void IRQ_generic_isr(uint32_t irq, uint32_t err)
+void IRQ_generic_isr(uint32_t irq, uint32_t err, uint64_t *ctx_stack)
 {
    atomic_add(&irq_semaphore, 1); /* Interrupts are disabled by hardware in handler */
+
+   save_context(ctx_stack);
 
    if (handlers[irq].handler)
       handlers[irq].handler(irq, err, handlers[irq].arg);
