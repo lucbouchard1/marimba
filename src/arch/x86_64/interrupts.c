@@ -4,6 +4,7 @@
 #include "../../io.h"
 #include "../../atomic.h"
 #include "../../klog.h"
+#include "../../syscall.h"
 
 extern void IDT_init();
 
@@ -156,6 +157,13 @@ void IRQ_generic_isr_error(uint32_t irq, uint32_t err)
    if (irq >= PIC_MASTER_REMAP_BASE && irq <= (PIC_MASTER_REMAP_BASE + 0x2F))
       PIC_sendEOI(irq - PIC_MASTER_REMAP_BASE);
 
+   atomic_sub(&irq_semaphore, 1);
+}
+
+void IRQ_syscall_handler(uint32_t num)
+{
+   atomic_add(&irq_semaphore, 1); /* Interrupts are disabled by hardware in handler */
+   syscall_handler(num);
    atomic_sub(&irq_semaphore, 1);
 }
 
