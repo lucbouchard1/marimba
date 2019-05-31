@@ -7,6 +7,7 @@
 #include "multiboot.h"
 #include "kmalloc.h"
 #include "klog.h"
+#include "syscall.h"
 #include "drivers/keyboard/keyboard.h"
 #include "drivers/serial/serial.h"
 
@@ -37,6 +38,8 @@ void kmain(uint32_t mb_magic, uint32_t mb_addr)
    MB_parse_multiboot(&map, mb_magic, mb_addr);
 
    MMU_init(&map);
+
+   yield();
 
    #ifdef STRESS_TEST
    stress_test();

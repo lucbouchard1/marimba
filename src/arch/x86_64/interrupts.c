@@ -170,6 +170,17 @@ void IRQ_set_handler(int irq, irq_handler_t handler, void *arg)
    handlers[irq].arg = arg;
 }
 
+void IRQ_set_syscall_handler(int irq, trap_handler_t handler, void *arg)
+{
+   if (irq > 256 || irq < 0) {
+      klog(KLOG_LEVEL_WARN, "cannot setup interrupt handler on irq %d", irq);
+      return;
+   }
+
+   handlers[irq].handler = handler;
+   handlers[irq].arg = arg;
+}
+
 void IRQ_enable()
 {
    // This is not thread safe at all

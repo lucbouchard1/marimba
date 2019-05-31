@@ -10,7 +10,9 @@ void IRQ_enable();
 void IRQ_disable();
 
 typedef void (*irq_handler_t)(int irq, int err, void* arg);
+typedef void (*trap_handler_t)(int trap_num, int err, void* arg);
 void IRQ_set_handler(int irq, irq_handler_t handler, void *arg);
+void TRAP_set_handler(int irq, trap_handler_t handler, void *arg);
 
 #if ARCH == x86_64
 #include "arch/x86_64/interrupts.h"

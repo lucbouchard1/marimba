@@ -1,6 +1,6 @@
 DIR = src/arch/x86_64/
 
-C_SRC = interrupts.c hw_init.c atomic.c paging.c
+C_SRC = interrupts.c hw_init.c atomic.c paging.c syscall.c
 ASM_SRC = boot.asm isr.asm long_mode_init.asm multiboot_header.asm stack.asm
 ISR_FILENAME = GENERATED_ASM_isr.asm
 IDT_FILENAME = GENERATED_C_idt.c

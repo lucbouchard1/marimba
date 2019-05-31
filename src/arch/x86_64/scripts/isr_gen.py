@@ -1,4 +1,5 @@
 
+syscall_irq = 123
 
 isr_normal = """\
 global isr_{0}
@@ -48,4 +49,5 @@ print('extern isr_error')
 print('section .text')
 print('bits 64')
 for irq,handler in irq_num_to_handler.items():
-    print(handler.format(irq));
+    if irq != syscall_irq:
+        print(handler.format(irq));
