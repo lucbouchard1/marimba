@@ -6,6 +6,7 @@
 #define RELEASED_SCAN_CODE 0xf0
 
 struct KeyboardDevice {
+   int (*char_avail)(struct KeyboardDevice *dev);
    char (*read_char)(struct KeyboardDevice *dev);
    int shift_pressed;
 };

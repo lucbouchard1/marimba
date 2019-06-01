@@ -91,6 +91,11 @@ static uint8_t ps2_read_data_p1()
    return inb(PS2_DATA_PORT);
 }
 
+static int ps2_char_avail()
+{
+   return inb(PS2_STATUS_PORT) & PS2_STATUS_OUTPUT;
+}
+
 char ps2_read_char(struct KeyboardDevice *dev)
 {
    uint8_t scode;
@@ -119,6 +124,7 @@ struct KeyboardDevice *init_ps2(int enable_interrupts)
 
    memset(&gdev, 0, sizeof(struct PS2Device));
    gdev.kb.read_char = &ps2_read_char;
+   gdev.kb.char_avail = &ps2_char_avail;
 
    /* Disable both ports */
    outb(PS2_CMD_PORT, PS2_CMD_DISABLE_P1);
