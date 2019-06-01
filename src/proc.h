@@ -12,13 +12,14 @@ struct Process {
    uint64_t cs, ss, ds, es, fs, gs;
    uint64_t rbp, rsp, rip, rflags;
    uint64_t *stack;
+   const char *name;
 };
 
 extern struct Process *curr_proc;
 extern struct Process *next_proc;
 
 void PROC_yield();
-int PROC_create_kthread(kproc_t entry_point, void *arg);
+int PROC_create_process(const char *name, kproc_t entry_point, void *arg);
 void PROC_run();
 
 #if ARCH == x86_64

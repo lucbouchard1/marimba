@@ -64,10 +64,9 @@ void kmain(uint32_t mb_magic, uint32_t mb_addr)
    IRQ_set_handler(0x21, keyboard_isr, kdev);
    IRQ_clear_mask(0x21); // Enable interrupts from keyboard!!
 
-   PROC_create_kthread(&test_func, &val1);
-   PROC_create_kthread(&test_func, &val2);
+   PROC_create_process("test_process_1", &test_func, &val1);
+   PROC_create_process("test_process_2", &test_func, &val2);
 
-   printk("entering hlt loop\n");
    while(1)
       PROC_run();
 }
