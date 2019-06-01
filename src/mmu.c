@@ -196,7 +196,7 @@ int MMU_init(struct PhysicalMMap *map)
    mmu_compute_free_segments(&mmu_state, map, ex_head);
 
    mmu_state.next_kernel_heap_vaddr = (void *)(MMAP_KERNEL_HEAP_START);
-   mmu_state.next_kernel_thread_stack_vaddr = (void *)(MMAP_KERNEL_STACKS_END-1);
+   mmu_state.next_kernel_thread_stack_vaddr = (void *)(MMAP_KERNEL_STACKS_END-8);
    mmu_state.page_table = MMU_alloc_frame();
    if (!mmu_state.page_table)
       return -1;
@@ -294,18 +294,20 @@ void MMU_free_page(void *vaddr)
    MMU_free_frame(addr);
 }
 
-void MMU_free_pages(void *vaddr, int num_pages)
+void MMU_free_pages(void *rvaddr, int num_pages)
 {
-   uint8_t *addr = PT_addr_virt_to_phys(vaddr);
+   uint8_t *vaddr = rvaddr;
+   void *addr;
    int i;
 
-   if (!addr || (uint64_t)addr % PAGE_SIZE) {
-      klog(KLOG_LEVEL_WARN, "attempting to free invalid address");
-      return;
+   for (i = 0; i < num_pages; i++) {
+      addr = PT_addr_virt_to_phys(vaddr + (PAGE_SIZE*i));
+      if (!addr || ptr_to_int(addr) % PAGE_SIZE) {
+         klog(KLOG_LEVEL_WARN, "attempting to free invalid address");
+         return;
+      }
+      MMU_free_frame(addr);
    }
-
-   for (i = 0; i < num_pages; i++)
-      MMU_free_frame(&addr[PAGE_SIZE*i]);
 }
 
 void *MMU_alloc_stack()
@@ -328,4 +330,21 @@ void *MMU_alloc_stack()
 
    IRQ_enable();
    return ret;
+}
+
+void MMU_free_stack(void *rvaddr)
+{
+   uint8_t *vaddr = rvaddr;
+   void *addr;
+   int i;
+
+   vaddr -= (PAGE_SIZE-8);
+   for (i = 0; i < KERNEL_THREAD_STACK_SIZE_PAGES; i++) {
+      addr = PT_addr_virt_to_phys(vaddr - (PAGE_SIZE*i));
+      if (!addr || ptr_to_int(addr) % PAGE_SIZE) {
+         klog(KLOG_LEVEL_WARN, "attempting to free invalid address");
+         return;
+      }
+      MMU_free_frame(addr);
+   }
 }

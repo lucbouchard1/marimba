@@ -5,29 +5,49 @@
 #include "string.h"
 #include "mmu.h"
 #include "syscall.h"
+#include "interrupts.h"
 
 struct Process *curr_proc = NULL;
 struct Process *next_proc = NULL;
+struct Process main_proc;
 
 static struct ProcessState {
    struct Process *ready;
    struct Process *ready_tail;
-} proc;
+} proc_state;
 
-static void thread_entry(void *arg)
+static void thread_exit()
 {
-   ((struct Process *)arg)->entry(((struct Process *)arg)->arg);
+   printk("%p exited\n", curr_proc);
+
+   MMU_free_stack(curr_proc->stack);
+
+   if (curr_proc->prev)
+      curr_proc->prev->next = curr_proc->next;
+   else
+      proc_state.ready = curr_proc->next;
+
+   kfree(curr_proc);
+   curr_proc = NULL;
+   yield();
 }
 
 void PROC_reschedule()
 {
+   IRQ_disable();
+
    if (curr_proc) {
-      proc.ready_tail->next = curr_proc;
-      proc.ready_tail = curr_proc;
+      proc_state.ready_tail->next = curr_proc;
+      curr_proc->prev = proc_state.ready_tail;
+      proc_state.ready_tail = curr_proc;
       curr_proc->next = NULL;
    }
 
-   next_proc = proc.ready;
+   next_proc = proc_state.ready;
+   proc_state.ready->next->prev = NULL;
+   proc_state.ready = proc_state.ready->next;
+
+   IRQ_enable();
 }
 
 void PROC_yield()
@@ -52,22 +72,34 @@ int PROC_create_kthread(kproc_t entry_point, void *arg)
       return -1;
    }
 
-   new->arg = arg;
-   new->entry = entry_point;
-   new->rsp = ptr_to_int(new->stack);
-   new->rip = ptr_to_int(&thread_entry);
+   new->stack[0] = ptr_to_int(NULL);
+   new->stack[-1] = ptr_to_int(NULL);
+   new->stack[-2] = ptr_to_int(&new->stack[-1]);
+   new->stack[-3] = ptr_to_int(&thread_exit);
+   new->rsp = ptr_to_int(&new->stack[-2]);
+
+   new->rip = ptr_to_int(entry_point);
+   new->rdi = ptr_to_int(arg);
    new->cs = 0x10;
 
-   new->next = proc.ready;
-   proc.ready = new;
-   if (!proc.ready_tail)
-      proc.ready_tail = new;
+   if (proc_state.ready)
+      proc_state.ready->prev = new;
+   new->next = proc_state.ready;
+   new->prev = NULL;
+   proc_state.ready = new;
+   if (!proc_state.ready_tail)
+      proc_state.ready_tail = new;
 
    return 0;
 }
 
 void PROC_run()
 {
-   if (proc.ready)
-      yield();
+   if (!proc_state.ready)
+      return;
+
+   curr_proc = &main_proc;
+   main_proc.next = NULL;
+
+   yield();
 }

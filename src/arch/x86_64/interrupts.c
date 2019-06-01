@@ -134,9 +134,8 @@ void IRQ_end_of_interrupt(unsigned char irq)
 
 void IRQ_generic_isr(uint32_t irq, uint32_t err, uint64_t *ctx_stack)
 {
-   atomic_add(&irq_semaphore, 1); /* Interrupts are disabled by hardware in handler */
-
-   PROC_save_context(curr_proc, ctx_stack);
+   if (irq != SYSCALL_TRAP_NUMBER)
+      atomic_add(&irq_semaphore, 1); /* Interrupts are disabled by hardware in handler */
 
    if (handlers[irq].handler)
       handlers[irq].handler(irq, err, handlers[irq].arg);
@@ -146,7 +145,17 @@ void IRQ_generic_isr(uint32_t irq, uint32_t err, uint64_t *ctx_stack)
    if (irq >= PIC_MASTER_REMAP_BASE && irq <= (PIC_MASTER_REMAP_BASE + 0x2F))
       PIC_sendEOI(irq - PIC_MASTER_REMAP_BASE);
 
-   atomic_sub(&irq_semaphore, 1);
+   IRQ_disable();
+   if (curr_proc != next_proc) {
+      if (curr_proc)
+         PROC_save_context(curr_proc, ctx_stack);
+      PROC_load_context(next_proc, ctx_stack);
+      curr_proc = next_proc;
+   }
+   IRQ_enable();
+
+   if (irq != SYSCALL_TRAP_NUMBER)
+      atomic_sub(&irq_semaphore, 1);
 }
 
 void IRQ_set_handler(int irq, irq_handler_t handler, void *arg)

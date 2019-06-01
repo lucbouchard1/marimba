@@ -8,6 +8,7 @@
 #include "kmalloc.h"
 #include "klog.h"
 #include "syscall.h"
+#include "proc.h"
 #include "drivers/keyboard/keyboard.h"
 #include "drivers/serial/serial.h"
 
@@ -29,13 +30,17 @@ void keyboard_isr(int irq, int err, void *arg)
 void test_func(void *arg)
 {
    int *val = (int *)arg;
-   printk("test: %d\n", *val);
-   yield();
+   while (1) {
+      printk("test: %d\n", *val);
+      yield();
+   }
 }
 
 void kmain(uint32_t mb_magic, uint32_t mb_addr)
 {
    struct KeyboardDevice *kdev;
+   int val1 = 20;
+   int val2 = 30;
 
    VGA_clear();
    HW_init();
@@ -46,15 +51,17 @@ void kmain(uint32_t mb_magic, uint32_t mb_addr)
 
    MMU_init(&map);
 
-   yield();
-
    #ifdef STRESS_TEST
    stress_test();
    #endif
 
    kdev = init_ps2(1);
    IRQ_set_handler(0x21, keyboard_isr, kdev);
-   IRQ_clear_mask(0x21); // Enable interrupts from keyboard!!
+   //IRQ_clear_mask(0x21); // Enable interrupts from keyboard!!
+
+   PROC_create_kthread(&test_func, &val1);
+   PROC_create_kthread(&test_func, &val2);
+
    while(1)
-      asm("hlt;");
+      PROC_run();
 }
