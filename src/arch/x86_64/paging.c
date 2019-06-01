@@ -170,6 +170,30 @@ int PT_demand_allocate(void *vaddr)
    return 0;
 }
 
+void *PT_free(void *vaddr)
+{
+   void *p4_addr = pt_get_addr();
+   int offset, i;
+   struct PTE *curr = p4_addr;
+
+   if (ptr_to_int(vaddr) % PAGE_SIZE) {
+      klog(KLOG_LEVEL_WARN, "attempting to free invalid address");
+      return NULL;
+   }
+
+   for (i = 0; i < PAGE_TABLE_DEPTH-1; i++) {
+      offset = pt_offset_for_depth(vaddr, i);
+      if (!curr[offset].present)
+         return NULL;
+      curr = pte_get_addr(&curr[offset]);
+   }
+   offset = pt_offset_for_depth(vaddr, i);
+
+   curr[offset].present = 0;
+   curr[offset].demand_allocate = 0;
+   return pte_get_addr(&curr[offset]);
+}
+
 
 void *PT_addr_virt_to_phys(void *vaddr)
 {

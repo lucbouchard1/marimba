@@ -81,8 +81,6 @@ int PROC_create_kthread(kproc_t entry_point, void *arg)
    new->rip = ptr_to_int(entry_point);
    new->rdi = ptr_to_int(arg);
    new->cs = 0x10;
-   new->entry = entry_point;
-   new->arg = arg;
 
    if (proc_state.ready)
       proc_state.ready->prev = new;

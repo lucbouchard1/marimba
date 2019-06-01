@@ -284,14 +284,10 @@ void *MMU_alloc_pages(int num_pages)
 
 void MMU_free_page(void *vaddr)
 {
-   void *addr = PT_addr_virt_to_phys(vaddr);
+   void *addr = PT_free(vaddr);
 
-   if (!addr || (uint64_t)addr % PAGE_SIZE) {
-      klog(KLOG_LEVEL_WARN, "attempting to free invalid address");
-      return;
-   }
-
-   MMU_free_frame(addr);
+   if (addr)
+      MMU_free_frame(addr);
 }
 
 void MMU_free_pages(void *rvaddr, int num_pages)
@@ -301,12 +297,8 @@ void MMU_free_pages(void *rvaddr, int num_pages)
    int i;
 
    for (i = 0; i < num_pages; i++) {
-      addr = PT_addr_virt_to_phys(vaddr + (PAGE_SIZE*i));
-      if (!addr || ptr_to_int(addr) % PAGE_SIZE) {
-         klog(KLOG_LEVEL_WARN, "attempting to free invalid address");
-         return;
-      }
-      MMU_free_frame(addr);
+      if ((addr = PT_free(vaddr + (PAGE_SIZE*i))))
+         MMU_free_frame(addr);
    }
 }
 
@@ -340,11 +332,7 @@ void MMU_free_stack(void *rvaddr)
 
    vaddr -= (PAGE_SIZE-8);
    for (i = 0; i < KERNEL_THREAD_STACK_SIZE_PAGES; i++) {
-      addr = PT_addr_virt_to_phys(vaddr - (PAGE_SIZE*i));
-      if (!addr || ptr_to_int(addr) % PAGE_SIZE) {
-         klog(KLOG_LEVEL_WARN, "attempting to free invalid address");
-         return;
-      }
-      MMU_free_frame(addr);
+      if ((addr = PT_free(vaddr + (PAGE_SIZE*i))))
+         MMU_free_frame(addr);
    }
 }
