@@ -32,9 +32,9 @@ void keyboard_isr(int irq, int err, void *arg)
 
 void test_func(void *arg)
 {
-   int *val = (int *)arg;
-   while (1) {
-      printk("test: %d\n", *val);
+   int *val = (int *)arg, i;
+   for (i = *val; i; i--) {
+      printk("test: %d\n", i);
       yield();
    }
 }
@@ -42,8 +42,8 @@ void test_func(void *arg)
 void kmain(uint32_t mb_magic, uint32_t mb_addr)
 {
    struct KeyboardDevice *kdev;
-   // /int val1 = 20;
-   // /int val2 = 30;
+   int val1 = 20;
+   int val2 = 30;
 
    VGA_clear();
    HW_init();
@@ -64,11 +64,10 @@ void kmain(uint32_t mb_magic, uint32_t mb_addr)
    IRQ_set_handler(0x21, keyboard_isr, kdev);
    IRQ_clear_mask(0x21); // Enable interrupts from keyboard!!
 
-   //PROC_create_kthread(&test_func, &val1);
-   //PROC_create_kthread(&test_func, &val2);
+   PROC_create_kthread(&test_func, &val1);
+   PROC_create_kthread(&test_func, &val2);
 
    printk("entering hlt loop\n");
    while(1)
-      asm("hlt;");
-      //PROC_run();
+      PROC_run();
 }
