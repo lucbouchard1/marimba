@@ -69,7 +69,7 @@ static inline int pt_offset_for_depth(void *vaddr, int depth)
 
    if (depth == PHYSICAL_PAGE_DEPTH)
       return addr & 0xFFF;
-   return (addr >> (12 + 9*(PAGE_TABLE_DEPTH - depth - 1))) & 0x1FF;
+   return (addr >> (12 + 9*(PAGE_TABLE_DEPTH - depth))) & 0x1FF;
 }
 
 static inline struct PTE *pt_get_next_pte(struct PTE *pt, void *vaddr, int depth)
@@ -89,11 +89,13 @@ static int pt_walk(void *vaddr, struct PTE **dest)
 
    for (i = 0; i < PHYSICAL_PAGE_DEPTH; i++) {
       curr = pt_get_next_pte(curr, vaddr, i);
-      if (!curr->present)
+      if (!curr->present) {
+         *dest = curr;
          return i;
+      }
    }
 
-   *dest = curr;
+   *dest = pt_get_next_pte(curr, vaddr, i);
    return PHYSICAL_PAGE_DEPTH;
 }
 
@@ -162,7 +164,7 @@ int PT_demand_allocate(void *vaddr)
       return -1;
    }
 
-   for (; depth < PHYSICAL_PAGE_DEPTH; depth++) {
+   for (; depth < PAGE_TABLE_DEPTH; depth++) {
       new_pt = MMU_alloc_frame();
       if (!new_pt) {
          klog(KLOG_LEVEL_CRIT, "out of memory");
@@ -170,7 +172,7 @@ int PT_demand_allocate(void *vaddr)
       }
       init_empty_page_table(new_pt);
       pte_set_addr(ent, new_pt);
-      ent = ((struct PTE *)new_pt) + pt_offset_for_depth(vaddr, depth+1);
+      ent = pt_get_next_pte(ent, vaddr, depth+1);
    }
    ent->demand_allocate = 1;
 
