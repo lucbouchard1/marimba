@@ -9,7 +9,8 @@
 #include <stdint.h>
 
 #define HUGE_PAGE_FRAME_SIZE 0x200000
-#define PAGE_TABLE_DEPTH 4
+#define PAGE_TABLE_DEPTH 3
+#define PHYSICAL_PAGE_DEPTH 4
 
 struct PTE {
    uint64_t present: 1;
@@ -66,46 +67,52 @@ static inline int pt_offset_for_depth(void *vaddr, int depth)
 {
    uint64_t addr = (uint64_t)vaddr;
 
-   if (depth == PAGE_TABLE_DEPTH)
+   if (depth == PHYSICAL_PAGE_DEPTH)
       return addr & 0xFFF;
    return (addr >> (12 + 9*(PAGE_TABLE_DEPTH - depth - 1))) & 0x1FF;
 }
 
-static int pt_walk(void *p4_addr, void *vaddr, struct PTE **dest)
+static inline struct PTE *pt_get_next_pte(struct PTE *pt, void *vaddr, int depth)
 {
-   int offset, i;
-   struct PTE *curr = p4_addr;
+   if (!pt)
+      pt = pt_get_addr();
+   else
+      pt = pte_get_addr(pt);
 
-   for (i = 0; i < PAGE_TABLE_DEPTH; i++) {
-      offset = pt_offset_for_depth(vaddr, i);
-      if (!curr[offset].present) {
-         *dest = &curr[offset];
+   return &pt[pt_offset_for_depth(vaddr, depth)];
+}
+
+static int pt_walk(void *vaddr, struct PTE **dest)
+{
+   struct PTE *curr = NULL;
+   int i;
+
+   for (i = 0; i < PHYSICAL_PAGE_DEPTH; i++) {
+      curr = pt_get_next_pte(curr, vaddr, i);
+      if (!curr->present)
          return i;
-      }
-      curr = pte_get_addr(&curr[offset]);
    }
 
-   *dest = (struct PTE *)((uint8_t *)curr + pt_offset_for_depth(vaddr, i));
-   return PAGE_TABLE_DEPTH;
+   *dest = curr;
+   return PHYSICAL_PAGE_DEPTH;
 }
 
 static void page_fault_handler(int irq, int err, void *arg)
 {
-   void *req_addr, *p4_addr, *frame;
+   void *req_addr, *frame;
    struct PTE *ent;
    int depth;
 
    req_addr = pt_get_req_vaddr();
-   p4_addr = pt_get_addr();
 
-   klog(KLOG_LEVEL_DEBUG, "page fault on address %p. Page table at %p. Error %x", req_addr, p4_addr, err);
+   klog(KLOG_LEVEL_DEBUG, "page fault on address %p. Error %x", req_addr, err);
 
-   if ((depth = pt_walk(p4_addr, req_addr, &ent)) == PAGE_TABLE_DEPTH) {
+   if ((depth = pt_walk(req_addr, &ent)) == PHYSICAL_PAGE_DEPTH) {
       klog(KLOG_LEVEL_WARN, "invalid page fault");
       return;
    }
 
-   if (!ent->demand_allocate || depth != PAGE_TABLE_DEPTH - 1) {
+   if (!ent->demand_allocate || depth != PAGE_TABLE_DEPTH) {
       klog(KLOG_LEVEL_WARN, "unhandled page fault");
       return;
    }
@@ -146,16 +153,16 @@ void PT_page_table_init(void *addr)
 int PT_demand_allocate(void *vaddr)
 {
    struct PTE *ent;
-   void *p4_addr = pt_get_addr(), *new_pt;
+   void *new_pt;
    int depth;
 
-   depth = pt_walk(p4_addr, vaddr, &ent);
-   if (depth == PAGE_TABLE_DEPTH) {
+   depth = pt_walk(vaddr, &ent);
+   if (depth == PHYSICAL_PAGE_DEPTH) {
       klog(KLOG_LEVEL_WARN, "allocation attempted twice on virtual address %p", vaddr);
       return -1;
    }
 
-   for (; depth < PAGE_TABLE_DEPTH-1; depth++) {
+   for (; depth < PHYSICAL_PAGE_DEPTH; depth++) {
       new_pt = MMU_alloc_frame();
       if (!new_pt) {
          klog(KLOG_LEVEL_CRIT, "out of memory");
@@ -172,35 +179,31 @@ int PT_demand_allocate(void *vaddr)
 
 void *PT_free(void *vaddr)
 {
-   void *p4_addr = pt_get_addr();
-   int offset, i;
-   struct PTE *curr = p4_addr;
+   int i;
+   struct PTE *curr = NULL;
 
    if (ptr_to_int(vaddr) % PAGE_SIZE) {
       klog(KLOG_LEVEL_WARN, "attempting to free invalid address");
       return NULL;
    }
 
-   for (i = 0; i < PAGE_TABLE_DEPTH-1; i++) {
-      offset = pt_offset_for_depth(vaddr, i);
-      if (!curr[offset].present)
+   for (i = 0; i < PHYSICAL_PAGE_DEPTH; i++) {
+      curr = pt_get_next_pte(curr, vaddr, i);
+      if (!curr->present)
          return NULL;
-      curr = pte_get_addr(&curr[offset]);
    }
-   offset = pt_offset_for_depth(vaddr, i);
 
-   curr[offset].present = 0;
-   curr[offset].demand_allocate = 0;
-   return pte_get_addr(&curr[offset]);
+   curr->present = 0;
+   curr->demand_allocate = 0;
+   return pt_get_next_pte(curr, vaddr, i);
 }
 
 
 void *PT_addr_virt_to_phys(void *vaddr)
 {
    struct PTE *addr;
-   void *p4_addr = pt_get_addr();
 
-   if (pt_walk(p4_addr, vaddr, &addr) == PAGE_TABLE_DEPTH)
+   if (pt_walk(vaddr, &addr) == PHYSICAL_PAGE_DEPTH)
       return addr;
    return NULL;
 }
