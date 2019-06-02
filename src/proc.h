@@ -21,6 +21,7 @@ extern struct Process *next_proc;
 void PROC_yield();
 int PROC_create_process(const char *name, kproc_t entry_point, void *arg);
 void PROC_run();
+void PROC_exit();
 
 #if ARCH == x86_64
 #include "arch/x86_64/proc.h"

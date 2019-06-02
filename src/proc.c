@@ -21,14 +21,9 @@ static void process_exit()
    klog(KLOG_LEVEL_INFO, "process %s exited", curr_proc->name);
 
    MMU_free_stack(curr_proc->stack);
-
-   if (curr_proc->prev)
-      curr_proc->prev->next = curr_proc->next;
-   else
-      proc_state.ready = curr_proc->next;
-
    kfree(curr_proc);
    curr_proc = NULL;
+
    yield();
 }
 
@@ -53,6 +48,11 @@ void PROC_reschedule()
 void PROC_yield()
 {
    PROC_reschedule();
+}
+
+void PROC_exit()
+{
+   process_exit();
 }
 
 int PROC_create_process(const char *name, kproc_t entry_point, void *arg)

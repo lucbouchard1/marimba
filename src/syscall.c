@@ -9,7 +9,11 @@ void syscall_handler(uint32_t num)
       case 0:
          PROC_yield();
          break;
-      
+
+      case 1:
+         PROC_exit();
+         break;
+
       default:
          klog(KLOG_LEVEL_WARN, "received unsupported system call %d", num);
          break;
