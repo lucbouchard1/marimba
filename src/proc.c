@@ -7,11 +7,11 @@
 #include "syscall.h"
 #include "interrupts.h"
 
-struct Process *curr_proc = NULL;
-struct Process *next_proc = NULL;
 struct Process main_proc = {
    .name = "main_proc"
 };
+struct Process *curr_proc = &main_proc;
+struct Process *next_proc = &main_proc;
 
 static struct ProcessState {
    struct ProcessQueue ready_queue;
@@ -21,24 +21,66 @@ static struct ProcessState {
    .procs = LINKED_LIST_INIT(proc_state.procs, struct Process, procs),
 };
 
+static void proc_queue_enqueue(struct ProcessQueue *queue, struct Process *proc)
+{
+   LL_enqueue(&queue->list, proc);
+}
+
+static struct Process *proc_queue_dequeue(struct ProcessQueue *queue)
+{
+   return LL_dequeue(&queue->list);
+}
+
 void PROC_queue_init(struct ProcessQueue *queue)
 {
    LL_init(&queue->list, offsetof(struct Process, queue));
 }
 
-void PROC_queue_enqueue(struct ProcessQueue *queue, struct Process *proc)
-{
-   LL_enqueue(&queue->list, proc);
-}
-
-struct Process *PROC_queue_dequeue(struct ProcessQueue *queue)
-{
-   return LL_dequeue(&queue->list);
-}
-
 int PROC_queue_empty(struct ProcessQueue *queue)
 {
    return LL_empty(&queue->list);
+}
+
+/**
+ * Block the current process on the passed queue.
+ * @queue: pointer to the queue to block on.
+ */
+void PROC_block_on(struct ProcessQueue *queue, int enable_ints)
+{
+   proc_queue_enqueue(queue, curr_proc);
+   curr_proc = NULL;
+
+   if (enable_ints)
+      IRQ_enable();
+
+   yield();
+}
+
+void PROC_unblock_head(struct ProcessQueue *queue)
+{
+   struct Process *proc;
+
+   if (PROC_queue_empty(queue))
+      return;
+
+   IRQ_disable();
+
+   proc = proc_queue_dequeue(queue);
+   proc_queue_enqueue(&proc_state.ready_queue, proc);
+
+   IRQ_enable();
+}
+
+void PROC_unblock_all(struct ProcessQueue *queue)
+{
+   struct Process *proc;
+
+   IRQ_disable();
+
+   while ((proc = proc_queue_dequeue(queue)))
+      proc_queue_enqueue(&proc_state.ready_queue, proc);
+
+   IRQ_enable();
 }
 
 static void process_exit()
@@ -59,8 +101,8 @@ void PROC_reschedule()
    IRQ_disable();
 
    if (curr_proc)
-      PROC_queue_enqueue(&proc_state.ready_queue, curr_proc);
-   next_proc = PROC_queue_dequeue(&proc_state.ready_queue);
+      proc_queue_enqueue(&proc_state.ready_queue, curr_proc);
+   next_proc = proc_queue_dequeue(&proc_state.ready_queue);
 
    IRQ_enable();
 }
@@ -108,7 +150,7 @@ int PROC_create_process(const char *name, kproc_t entry_point, void *arg)
    new->cs = 0x10;
    new->name = name;
 
-   PROC_queue_enqueue(&proc_state.ready_queue, new);
+   proc_queue_enqueue(&proc_state.ready_queue, new);
    LL_enqueue(&proc_state.procs, new);
 
    klog(KLOG_LEVEL_INFO, "starting process %s", new->name);
@@ -123,8 +165,6 @@ void PROC_run()
 {
    if (PROC_queue_empty(&proc_state.ready_queue))
       return;
-
-   curr_proc = &main_proc;
 
    yield();
 }

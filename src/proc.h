@@ -31,6 +31,9 @@ int PROC_create_process(const char *name, kproc_t entry_point, void *arg);
 void PROC_run();
 void PROC_exit();
 void PROC_dump_procs();
+void PROC_queue_init(struct ProcessQueue *queue);
+int PROC_queue_empty(struct ProcessQueue *queue);
+void PROC_unblock_all(struct ProcessQueue *queue);
 
 #if ARCH == x86_64
 #include "arch/x86_64/proc.h"
