@@ -2,17 +2,23 @@
 #define __PROC_H__
 
 #include "types.h"
+#include "list.h"
 
 typedef void (*kproc_t)(void*);
 
 struct Process {
-   struct Process *next, *prev;
+   struct ListHeader queue;
+   struct ListHeader procs;
    uint64_t rax, rbx, rcx, rdx, rdi, rsi;
    uint64_t r8, r9, r10, r11, r12, r13, r14, r15;
    uint64_t cs, ss, ds, es, fs, gs;
    uint64_t rbp, rsp, rip, rflags;
    uint64_t *stack;
    const char *name;
+};
+
+struct ProcessQueue {
+   struct LinkedList list;
 };
 
 extern struct Process *curr_proc;

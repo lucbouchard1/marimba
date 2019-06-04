@@ -37,6 +37,10 @@ struct PhysicalMMap {
 #pragma GCC diagnostic ignored "-Wint-to-pointer-cast"
 #pragma GCC diagnostic ignored "-Wpointer-to-int-cast"
 
+#ifndef offsetof
+#define offsetof(a,b) ((offset_t)(&(((a*)(0))->b)))
+#endif
+
 static inline offset_t ptr_to_int(void *p)
 {
    return (offset_t)p;

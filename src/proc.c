@@ -12,13 +12,46 @@ struct Process *next_proc = NULL;
 struct Process main_proc;
 
 static struct ProcessState {
-   struct Process *ready;
-   struct Process *ready_tail;
-} proc_state;
+   struct ProcessQueue ready_queue;
+   struct LinkedList procs;
+} proc_state = {
+   .ready_queue.list = {
+      .head.next = &proc_state.ready_queue.list.head,
+      .head.prev = &proc_state.ready_queue.list.head,
+      .head_offset = offsetof(struct Process, queue)
+   },
+   .procs = {
+      .head.next = &proc_state.procs.head,
+      .head.prev = &proc_state.procs.head,
+      .head_offset = offsetof(struct Process, procs)
+   }
+};
+
+void PROC_queue_init(struct ProcessQueue *queue)
+{
+   LL_init(&queue->list, offsetof(struct Process, queue));
+}
+
+void PROC_queue_enqueue(struct ProcessQueue *queue, struct Process *proc)
+{
+   LL_enqueue(&queue->list, proc);
+}
+
+struct Process *PROC_queue_dequeue(struct ProcessQueue *queue)
+{
+   return LL_dequeue(&queue->list);
+}
+
+int PROC_queue_empty(struct ProcessQueue *queue)
+{
+   return LL_empty(&queue->list);
+}
 
 static void process_exit()
 {
    klog(KLOG_LEVEL_INFO, "process %s exited", curr_proc->name);
+
+   LL_del(&curr_proc->procs);
 
    MMU_free_stack(curr_proc->stack);
    kfree(curr_proc);
@@ -31,16 +64,9 @@ void PROC_reschedule()
 {
    IRQ_disable();
 
-   if (curr_proc) {
-      proc_state.ready_tail->next = curr_proc;
-      curr_proc->prev = proc_state.ready_tail;
-      proc_state.ready_tail = curr_proc;
-      curr_proc->next = NULL;
-   }
-
-   next_proc = proc_state.ready;
-   proc_state.ready->next->prev = NULL;
-   proc_state.ready = proc_state.ready->next;
+   if (curr_proc)
+      PROC_queue_enqueue(&proc_state.ready_queue, curr_proc);
+   next_proc = PROC_queue_dequeue(&proc_state.ready_queue);
 
    IRQ_enable();
 }
@@ -79,13 +105,8 @@ int PROC_create_process(const char *name, kproc_t entry_point, void *arg)
    new->cs = 0x10;
    new->name = name;
 
-   if (proc_state.ready)
-      proc_state.ready->prev = new;
-   new->next = proc_state.ready;
-   new->prev = NULL;
-   proc_state.ready = new;
-   if (!proc_state.ready_tail)
-      proc_state.ready_tail = new;
+   PROC_queue_enqueue(&proc_state.ready_queue, new);
+   LL_enqueue(&proc_state.procs, new);
 
    klog(KLOG_LEVEL_INFO, "starting process %s", new->name);
    return 0;
@@ -97,11 +118,10 @@ error:
 
 void PROC_run()
 {
-   if (!proc_state.ready)
+   if (PROC_queue_empty(&proc_state.ready_queue))
       return;
 
    curr_proc = &main_proc;
-   main_proc.next = NULL;
 
    yield();
 }
