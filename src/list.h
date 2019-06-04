@@ -25,6 +25,7 @@ struct LinkedList {
 };
 
 void LL_init(struct LinkedList *list, offset_t head_offset);
+void LL_append(struct LinkedList *list, void *data);
 void LL_enqueue(struct LinkedList *list, void *data);
 void *LL_dequeue(struct LinkedList *list);
 void LL_del(struct ListHeader *del);

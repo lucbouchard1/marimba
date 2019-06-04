@@ -40,6 +40,11 @@ void LL_add_prev(struct ListHeader *new, struct ListHeader *cur)
 
 void LL_enqueue(struct LinkedList *list, void *data)
 {
+   LL_append(list, data);
+}
+
+void LL_append(struct LinkedList *list, void *data)
+{
    LL_add_prev(LL_HEAD(list, data), &list->head);
 }
 

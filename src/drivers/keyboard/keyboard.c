@@ -2,86 +2,86 @@
 
 #include "keyboard.h"
 
-char translate_scan_code(struct KeyboardDevice *dev, uint8_t code)
+char translate_scan_code(uint8_t shift, uint8_t code)
 {
    switch (code)
    {
       case 0x1c:
-         return dev->shift_pressed ? 'A' : 'a';
+         return shift ? 'A' : 'a';
       case 0x32:
-         return dev->shift_pressed ? 'B' : 'b';
+         return shift ? 'B' : 'b';
       case 0x21:
-         return dev->shift_pressed ? 'C' : 'c';
+         return shift ? 'C' : 'c';
       case 0x23:
-         return dev->shift_pressed ? 'D' : 'd';
+         return shift ? 'D' : 'd';
       case 0x24:
-         return dev->shift_pressed ? 'E' : 'e';
+         return shift ? 'E' : 'e';
       case 0x2b:
-         return dev->shift_pressed ? 'F' : 'f';
+         return shift ? 'F' : 'f';
       case 0x34:
-         return dev->shift_pressed ? 'G' : 'g';
+         return shift ? 'G' : 'g';
       case 0x33:
-         return dev->shift_pressed ? 'H' : 'h';
+         return shift ? 'H' : 'h';
       case 0x43:
-         return dev->shift_pressed ? 'I' : 'i';
+         return shift ? 'I' : 'i';
       case 0x3b:
-         return dev->shift_pressed ? 'J' : 'j';
+         return shift ? 'J' : 'j';
       case 0x42:
-         return dev->shift_pressed ? 'K' : 'k';
+         return shift ? 'K' : 'k';
       case 0x4b:
-         return dev->shift_pressed ? 'L' : 'l';
+         return shift ? 'L' : 'l';
       case 0x3a:
-         return dev->shift_pressed ? 'M' : 'm';
+         return shift ? 'M' : 'm';
       case 0x31:
-         return dev->shift_pressed ? 'N' : 'n';
+         return shift ? 'N' : 'n';
       case 0x44:
-         return dev->shift_pressed ? 'O' : 'o';
+         return shift ? 'O' : 'o';
       case 0x4d:
-         return dev->shift_pressed ? 'P' : 'p';
+         return shift ? 'P' : 'p';
       case 0x15:
-         return dev->shift_pressed ? 'Q' : 'q';
+         return shift ? 'Q' : 'q';
       case 0x2d:
-         return dev->shift_pressed ? 'R' : 'r';
+         return shift ? 'R' : 'r';
       case 0x1b:
-         return dev->shift_pressed ? 'S' : 's';
+         return shift ? 'S' : 's';
       case 0x2c:
-         return dev->shift_pressed ? 'T' : 't';
+         return shift ? 'T' : 't';
       case 0x3c:
-         return dev->shift_pressed ? 'U' : 'u';
+         return shift ? 'U' : 'u';
       case 0x2a:
-         return dev->shift_pressed ? 'V' : 'v';
+         return shift ? 'V' : 'v';
       case 0x1d:
-         return dev->shift_pressed ? 'W' : 'w';
+         return shift ? 'W' : 'w';
       case 0x22:
-         return dev->shift_pressed ? 'X' : 'x';
+         return shift ? 'X' : 'x';
       case 0x35:
-         return dev->shift_pressed ? 'Y' : 'y';
+         return shift ? 'Y' : 'y';
       case 0x1a:
-         return dev->shift_pressed ? 'Z' : 'z';
+         return shift ? 'Z' : 'z';
       case 0x16:
-         return dev->shift_pressed ? '!' : '1';
+         return shift ? '!' : '1';
       case 0x1e:
-         return dev->shift_pressed ? '@' : '2';
+         return shift ? '@' : '2';
       case 0x26:
-         return dev->shift_pressed ? '#' : '3';
+         return shift ? '#' : '3';
       case 0x25:
-         return dev->shift_pressed ? '$' : '4';
+         return shift ? '$' : '4';
       case 0x2e:
-         return dev->shift_pressed ? '%' : '5';
+         return shift ? '%' : '5';
       case 0x36:
-         return dev->shift_pressed ? '^' : '6';
+         return shift ? '^' : '6';
       case 0x3d:
-         return dev->shift_pressed ? '&' : '7';
+         return shift ? '&' : '7';
       case 0x3e:
-         return dev->shift_pressed ? '*' : '8';
+         return shift ? '*' : '8';
       case 0x46:
-         return dev->shift_pressed ? '(' : '9';
+         return shift ? '(' : '9';
       case 0x45:
-         return dev->shift_pressed ? ')' : '0';
+         return shift ? ')' : '0';
       case 0x4e:
-         return dev->shift_pressed ? '_' : '-';
+         return shift ? '_' : '-';
       case 0x55:
-         return dev->shift_pressed ? '+' : '=';
+         return shift ? '+' : '=';
       case 0x5A:
          return '\n';
       case 0x29:

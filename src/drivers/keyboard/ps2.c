@@ -2,6 +2,9 @@
 #include "../../printk.h"
 #include "../../string.h"
 #include "../../klog.h"
+#include "../../kmalloc.h"
+#include "../../proc.h"
+#include "../../files.h"
 #include "keyboard.h"
 
 #define PS2_DATA_PORT 0x60
@@ -25,11 +28,35 @@
 #define PS2_CNTL_CFG_2ND_CLK 0x1 << 5
 #define PS2_CNTL_CFG_TRANS 0x1 << 6
 
-struct PS2Device {
-   struct KeyboardDevice kb;
+struct PS2Descriptor {
+   int read_pos;
 };
 
-static struct PS2Device gdev;
+static struct PS2Device {
+   struct ProcessQueue blocked_procs;
+   uint8_t shift_pressed;
+} ps2_dev;
+
+struct File ps2_file = {
+   .open = &ps2_open,
+   .close = &ps2_close,
+   .read = &ps2_read,
+   .type = FILE_TYPE_CHAR_DEVICE,
+   .dev_data = &ps2_dev,
+   .name = "ps2"
+};
+
+static void ps2_isr(int irq, int err, void *arg)
+{
+   struct KeyboardDevice *dev = (struct KeyboardDevice *)arg;
+   char c;
+
+   if (!dev->char_avail(dev))
+      return;
+
+   c = dev->read_char(dev);
+   printk("%c", c);
+}
 
 static inline void ps2_wait_writable()
 {
@@ -96,8 +123,9 @@ static int ps2_char_avail()
    return inb(PS2_STATUS_PORT) & PS2_STATUS_OUTPUT;
 }
 
-char ps2_read_char(struct KeyboardDevice *dev)
+char ps2_read_char(struct KeyboardDevice *cdev)
 {
+   struct PS2Device *dev = (struct PS2Device *)cdev;
    uint8_t scode;
 
    while (1) {
@@ -105,7 +133,7 @@ char ps2_read_char(struct KeyboardDevice *dev)
       if (scode == LEFT_SHIFT_SCAN_CODE || scode == RIGHT_SHIFT_SCAN_CODE)
          dev->shift_pressed = 1;
       else if (scode != RELEASED_SCAN_CODE)
-         return translate_scan_code(dev, scode);
+         return translate_scan_code(dev->shift_pressed, scode);
 
       if (scode == RELEASED_SCAN_CODE) { 
          scode = ps2_read_data_p1();
@@ -118,13 +146,12 @@ char ps2_read_char(struct KeyboardDevice *dev)
    return 0;
 }
 
-struct KeyboardDevice *init_ps2(int enable_interrupts)
+struct File *init_ps2(int enable_interrupts)
 {
    uint8_t cntl_cfg, resp;
 
-   memset(&gdev, 0, sizeof(struct PS2Device));
-   gdev.kb.read_char = &ps2_read_char;
-   gdev.kb.char_avail = &ps2_char_avail;
+   memset(&ps2_dev, 0, sizeof(struct PS2Device));
+   PROC_queue_init(&ps2_dev.blocked_procs);
 
    /* Disable both ports */
    outb(PS2_CMD_PORT, PS2_CMD_DISABLE_P1);
@@ -171,5 +198,8 @@ struct KeyboardDevice *init_ps2(int enable_interrupts)
    if (resp != 0xAA)
       klog(KLOG_LEVEL_ERR, "PS2 device did not reset");
 
-   return (struct KeyboardDevice *)&gdev;
+   IRQ_set_handler(0x21, ps2_isr, &ps2_dev);
+   IRQ_clear_mask(0x21);
+
+   return &ps2_file;
 }

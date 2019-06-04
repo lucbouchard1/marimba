@@ -18,18 +18,6 @@ static struct PhysicalMMap map;
 extern void stress_test();
 #endif
 
-void keyboard_isr(int irq, int err, void *arg)
-{
-   struct KeyboardDevice *dev = (struct KeyboardDevice *)arg;
-   char c;
-
-   if (!dev->char_avail(dev))
-      return;
-
-   c = dev->read_char(dev);
-   printk("%c", c);
-}
-
 void test_func(void *arg)
 {
    int *val = (int *)arg, i;
@@ -54,15 +42,13 @@ void kmain(uint32_t mb_magic, uint32_t mb_addr)
 
    MMU_init(&map);
 
+   FILE_temp_dev_init();
+
    klog(KLOG_LEVEL_INFO, "creating threads\n");
 
    #ifdef STRESS_TEST
    stress_test();
    #endif
-
-   kdev = init_ps2(1);
-   IRQ_set_handler(0x21, keyboard_isr, kdev);
-   IRQ_clear_mask(0x21); // Enable interrupts from keyboard!!
 
    PROC_create_process("test_process_1", &test_func, &val1);
    PROC_create_process("test_process_2", &test_func, &val2);
