@@ -101,11 +101,12 @@ void PROC_reschedule()
 {
    IRQ_disable();
 
+   if (curr_proc && !proc_state.sleep_curr)
+      proc_queue_enqueue(&proc_state.ready_queue, curr_proc);
+
    if (PROC_queue_empty(&proc_state.ready_queue)) {
       next_proc = &main_proc;
    } else {
-      if (curr_proc && !proc_state.sleep_curr)
-         proc_queue_enqueue(&proc_state.ready_queue, curr_proc);
       next_proc = proc_queue_dequeue(&proc_state.ready_queue);
       proc_state.sleep_curr = 0;
    }
