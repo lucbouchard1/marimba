@@ -18,14 +18,14 @@ void FILE_register(struct File *file)
    LL_enqueue(&files.list, file);
 }
 
-struct FileDescriptor *FILE_open(const char *name, uint32_t flags)
+struct OpenFile *FILE_open(const char *name, uint32_t flags)
 {
    struct File *curr;
    struct FileDescriptor *ret = NULL;
 
    LL_for_each(&files.list, curr) {
       if (!strcmp(name, curr->name)) {
-         ret = curr->open(curr, flags);
+         ret = curr->open(flags);
          break;
       }
    }
@@ -35,7 +35,7 @@ struct FileDescriptor *FILE_open(const char *name, uint32_t flags)
    return ret;
 }
 
-void FILE_close(struct FileDescriptor *fd)
+void FILE_close(struct OpenFile *fd)
 {
    fd->file->close(fd);
 }

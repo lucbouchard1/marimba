@@ -6,17 +6,24 @@
 #define FILE_TYPE_CHAR_DEVICE 'c'
 #define FILE_TYPE_BLOCK_DEVICE 'b'
 
+struct CharDevice {
+   int num_open;
+};
+
+struct BlockDevice {
+   int num_open;
+};
+
 struct FileData;
 
-struct FileDescriptor {
+struct OpenFile {
    struct File *file;
-   void *user_Data;
 };
 
 struct File {
-   struct FileDescriptor *(*open)(struct File *file, uint32_t flags);
-   void (*close)(struct FileDescriptor *fd);
-   int (*read)(struct FileDescriptor *fd, char *dest, size_t len);
+   struct OpenFile *(*open)(uint32_t flags);
+   void (*close)(struct OpenFile *fd);
+   int (*read)(struct OpenFile *fd, char *dest, size_t len);
 
    char type;
    void *dev_data;
@@ -26,8 +33,8 @@ struct File {
 };
 
 void FILE_register(struct File *file);
-struct FileDescriptor *FILE_open(const char *name, uint32_t flags);
-void FILE_close(struct FileDescriptor *fd);
+struct OpenFile *FILE_open(const char *name, uint32_t flags);
+void FILE_close(struct OpenFile *fd);
 void FILE_temp_dev_init();
 
 #endif

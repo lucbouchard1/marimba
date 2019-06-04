@@ -1,10 +1,10 @@
 #include "../../io.h"
-#include "../../printk.h"
 #include "../../string.h"
 #include "../../klog.h"
 #include "../../kmalloc.h"
 #include "../../proc.h"
 #include "../../files.h"
+#include "../../interrupts.h"
 #include "keyboard.h"
 
 #define PS2_DATA_PORT 0x60
@@ -28,14 +28,30 @@
 #define PS2_CNTL_CFG_2ND_CLK 0x1 << 5
 #define PS2_CNTL_CFG_TRANS 0x1 << 6
 
-struct PS2Descriptor {
-   int read_pos;
+#define PS2_BUFF_SIZE 128
+#define BUFF_POS(pos) ((pos == -1 ? PS2_BUFF_SIZE-1 : pos) % PS@_BUFF_SIZE)
+
+struct OpenFile *ps2_open(uint32_t flags);
+int ps2_read(struct OpenFile *fd, char *dest, size_t len);
+void ps2_close(struct OpenFile *fd);
+
+struct OpenPS2 {
+   struct OpenFile fd;
+   int consumer_pos;
 };
 
 static struct PS2Device {
+   struct CharDevice cdev;
    struct ProcessQueue blocked_procs;
    uint8_t shift_pressed;
-} ps2_dev;
+   char data[PS2_BUFF_SIZE];
+   int producer_pos;
+} ps2_dev = {
+   .cdev.num_open = 0,
+   .shift_pressed = 0,
+   .producer_pos = 0,
+   .blocked_procs = PROC_QUEUE_INIT(ps2_dev.blocked_procs)
+};
 
 struct File ps2_file = {
    .open = &ps2_open,
@@ -46,16 +62,22 @@ struct File ps2_file = {
    .name = "ps2"
 };
 
-static void ps2_isr(int irq, int err, void *arg)
+static inline char consumer_read_next(struct OpenPS2 *user)
 {
-   struct KeyboardDevice *dev = (struct KeyboardDevice *)arg;
-   char c;
+   char ret = ps2_dev.data[user->consumer_pos];
+   user->consumer_pos = BUFF_POS(user->consumer_pos+1);
+   return ret;
+}
 
-   if (!dev->char_avail(dev))
-      return;
+static inline void producer_add(char c)
+{
+   ps2_dev.data[ps2_dev.producer_pos] = c;
+   ps2_dev.producer_pos = BUFF_POS(ps2_dev.producer_pos+1);
+}
 
-   c = dev->read_char(dev);
-   printk("%c", c);
+static inline int consumer_has_bytes(struct OpenPS2 *user)
+{
+   return user->consumer_pos == ps2_dev.producer_pos;
 }
 
 static inline void ps2_wait_writable()
@@ -123,35 +145,44 @@ static int ps2_char_avail()
    return inb(PS2_STATUS_PORT) & PS2_STATUS_OUTPUT;
 }
 
-char ps2_read_char(struct KeyboardDevice *cdev)
+char ps2_read_char()
 {
-   struct PS2Device *dev = (struct PS2Device *)cdev;
+   struct PS2Device *dev = &ps2_dev;
    uint8_t scode;
 
-   while (1) {
-      scode = ps2_read_data_p1();
-      if (scode == LEFT_SHIFT_SCAN_CODE || scode == RIGHT_SHIFT_SCAN_CODE)
-         dev->shift_pressed = 1;
-      else if (scode != RELEASED_SCAN_CODE)
-         return translate_scan_code(dev->shift_pressed, scode);
+   if (!ps2_char_avail())
+      return 0;
 
-      if (scode == RELEASED_SCAN_CODE) { 
-         scode = ps2_read_data_p1();
-         if (scode == LEFT_SHIFT_SCAN_CODE ||
-               scode == RIGHT_SHIFT_SCAN_CODE)
-            dev->shift_pressed = 0;
-      }
+   scode = ps2_read_data_p1();
+   if (scode == LEFT_SHIFT_SCAN_CODE || scode == RIGHT_SHIFT_SCAN_CODE)
+      dev->shift_pressed = 1;
+   else if (scode != RELEASED_SCAN_CODE)
+      return translate_scan_code(dev->shift_pressed, scode);
+
+   if (scode == RELEASED_SCAN_CODE) {
+      scode = ps2_read_data_p1();
+      if (scode == LEFT_SHIFT_SCAN_CODE ||
+            scode == RIGHT_SHIFT_SCAN_CODE)
+         dev->shift_pressed = 0;
    }
 
    return 0;
 }
 
-struct File *init_ps2(int enable_interrupts)
+static void ps2_isr(int irq, int err, void *arg)
+{
+   char c;
+
+   if (!(c = ps2_read_char()))
+      return;
+
+   producer_add_char(c);
+   PROC_unblock_all(&ps2_dev.blocked_procs);
+}
+
+int init_ps2()
 {
    uint8_t cntl_cfg, resp;
-
-   memset(&ps2_dev, 0, sizeof(struct PS2Device));
-   PROC_queue_init(&ps2_dev.blocked_procs);
 
    /* Disable both ports */
    outb(PS2_CMD_PORT, PS2_CMD_DISABLE_P1);
@@ -168,8 +199,7 @@ struct File *init_ps2(int enable_interrupts)
          | PS2_CNTL_CFG_P2_INT | PS2_CNTL_CFG_TRANS);
 
    /* enable interrupts for p1 */
-   if (enable_interrupts)
-      cntl_cfg |= PS2_CNTL_CFG_P1_INT;
+   cntl_cfg |= PS2_CNTL_CFG_P1_INT;
 
    /* Write controller configuration back out */
    ps2_write_cmd(PS2_CMD_WRITE_CNTL_CFG, cntl_cfg);
@@ -198,8 +228,65 @@ struct File *init_ps2(int enable_interrupts)
    if (resp != 0xAA)
       klog(KLOG_LEVEL_ERR, "PS2 device did not reset");
 
-   IRQ_set_handler(0x21, ps2_isr, &ps2_dev);
+   IRQ_set_handler(0x21, ps2_isr, NULL);
    IRQ_clear_mask(0x21);
 
-   return &ps2_file;
+   return 0;
+}
+
+int cleanup_ps2()
+{
+   // TODO: Implement IRQ_release_handler!!
+   IRQ_set_mask(0x21);
+   return 0;
+}
+
+struct OpenFile *ps2_open(uint32_t flags)
+{
+   struct OpenPS2 *ret;
+
+   ret = kmalloc(sizeof(struct OpenPS2));
+   if (!ret)
+      return NULL;
+   ret->fd.file = &ps2_file;
+
+   IRQ_disable();
+   if (!ps2_dev.cdev.num_open)
+      init_ps2();
+   ps2_dev.cdev.num_open++;
+   ret->consumer_pos = ps2_dev.producer_pos;
+   IRQ_enable();
+
+   return (struct OpenFile *)ret;
+}
+
+int ps2_read(struct OpenFile *fd, char *dest, size_t len)
+{
+   struct OpenPS2 *user = (struct OpenPS2 *)fd;
+   char *curr = dest;
+
+   IRQ_disable();
+   while (!consumer_has_bytes(user)) {
+      PROC_block_on(&ps2_dev.blocked_procs, 1);
+      IRQ_disable();
+   }
+
+   for (; len && consumer_has_bytes(); len--, curr++)
+      *curr = consumer_read_next(user);
+
+   IRQ_enable();
+   return curr - dest;
+}
+
+void ps2_close(struct OpenFile *fd)
+{
+   struct OpenPS2 *user = (struct OpenPS2 *)fd;
+
+   kfree(user);
+
+   IRQ_disable();
+   ps2_dev.cdev.num_open--;
+   if (!ps2_dev.cdev.num_open)
+      cleanup_ps2();
+   IRQ_enable();
 }
