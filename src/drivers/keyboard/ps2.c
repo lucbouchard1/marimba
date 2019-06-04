@@ -29,7 +29,7 @@
 #define PS2_CNTL_CFG_TRANS 0x1 << 6
 
 #define PS2_BUFF_SIZE 128
-#define BUFF_POS(pos) ((pos == -1 ? PS2_BUFF_SIZE-1 : pos) % PS@_BUFF_SIZE)
+#define BUFF_POS(pos) ((pos == -1 ? PS2_BUFF_SIZE-1 : pos) % PS2_BUFF_SIZE)
 
 struct OpenFile *ps2_open(uint32_t flags);
 int ps2_read(struct OpenFile *fd, char *dest, size_t len);
@@ -37,7 +37,7 @@ void ps2_close(struct OpenFile *fd);
 
 struct OpenPS2 {
    struct OpenFile fd;
-   int consumer_pos;
+   int pos;
 };
 
 static struct PS2Device {
@@ -45,11 +45,11 @@ static struct PS2Device {
    struct ProcessQueue blocked_procs;
    uint8_t shift_pressed;
    char data[PS2_BUFF_SIZE];
-   int producer_pos;
+   int pos;
 } ps2_dev = {
    .cdev.num_open = 0,
    .shift_pressed = 0,
-   .producer_pos = 0,
+   .pos = 0,
    .blocked_procs = PROC_QUEUE_INIT(ps2_dev.blocked_procs)
 };
 
@@ -64,20 +64,20 @@ struct File ps2_file = {
 
 static inline char consumer_read_next(struct OpenPS2 *user)
 {
-   char ret = ps2_dev.data[user->consumer_pos];
-   user->consumer_pos = BUFF_POS(user->consumer_pos+1);
+   char ret = ps2_dev.data[user->pos];
+   user->pos = BUFF_POS(user->pos+1);
    return ret;
 }
 
 static inline void producer_add(char c)
 {
-   ps2_dev.data[ps2_dev.producer_pos] = c;
-   ps2_dev.producer_pos = BUFF_POS(ps2_dev.producer_pos+1);
+   ps2_dev.data[ps2_dev.pos] = c;
+   ps2_dev.pos = BUFF_POS(ps2_dev.pos+1);
 }
 
 static inline int consumer_has_bytes(struct OpenPS2 *user)
 {
-   return user->consumer_pos == ps2_dev.producer_pos;
+   return !(user->pos == ps2_dev.pos);
 }
 
 static inline void ps2_wait_writable()
@@ -176,7 +176,7 @@ static void ps2_isr(int irq, int err, void *arg)
    if (!(c = ps2_read_char()))
       return;
 
-   producer_add_char(c);
+   producer_add(c);
    PROC_unblock_all(&ps2_dev.blocked_procs);
 }
 
@@ -254,7 +254,7 @@ struct OpenFile *ps2_open(uint32_t flags)
    if (!ps2_dev.cdev.num_open)
       init_ps2();
    ps2_dev.cdev.num_open++;
-   ret->consumer_pos = ps2_dev.producer_pos;
+   ret->pos = ps2_dev.pos;
    IRQ_enable();
 
    return (struct OpenFile *)ret;
@@ -271,7 +271,7 @@ int ps2_read(struct OpenFile *fd, char *dest, size_t len)
       IRQ_disable();
    }
 
-   for (; len && consumer_has_bytes(); len--, curr++)
+   for (; len && consumer_has_bytes(user); len--, curr++)
       *curr = consumer_read_next(user);
 
    IRQ_enable();

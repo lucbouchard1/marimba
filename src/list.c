@@ -18,6 +18,17 @@ static void ll_del(struct ListHeader *del, struct ListHeader *prev,
    del->prev = NULL;
 }
 
+void *LL_next(struct LinkedList *list, void *curr)
+{
+   if (LL_empty(list))
+      return NULL;
+
+   if (LL_head(list, curr)->next == &list->head)
+      return LL_data(list, list->head.next);
+   else
+      return LL_data(list, LL_head(list, curr)->next);
+}
+
 int LL_empty(struct LinkedList *list)
 {
    return list->head.next == &list->head;
@@ -45,7 +56,7 @@ void LL_enqueue(struct LinkedList *list, void *data)
 
 void LL_append(struct LinkedList *list, void *data)
 {
-   LL_add_prev(LL_HEAD(list, data), &list->head);
+   LL_add_prev(LL_head(list, data), &list->head);
 }
 
 void *LL_dequeue(struct LinkedList *list)
@@ -57,7 +68,7 @@ void *LL_dequeue(struct LinkedList *list)
 
    ret = list->head.next;
    LL_del(ret);
-   return LL_DATA(list, ret);
+   return LL_data(list, ret);
 }
 
 void LL_init(struct LinkedList *list, offset_t head_offset)

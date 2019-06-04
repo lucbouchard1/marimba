@@ -14,7 +14,9 @@ struct BlockDevice {
    int num_open;
 };
 
-struct FileData;
+struct FileData {
+   struct ListHeader files;
+};
 
 struct OpenFile {
    struct File *file;
@@ -34,6 +36,7 @@ struct File {
 
 void FILE_register(struct File *file);
 struct OpenFile *FILE_open(const char *name, uint32_t flags);
+void FILE_read(struct OpenFile *fd, char *buff, size_t len);
 void FILE_close(struct OpenFile *fd);
 void FILE_temp_dev_init();
 

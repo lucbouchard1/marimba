@@ -3,17 +3,17 @@
 
 #include "types.h"
 
-#define LL_HEAD(list, data) ((struct ListHeader *)&((uint8_t *)data)[(list)->head_offset])
-#define LL_DATA(list, data) ((void *)&((uint8_t *)data)[-1*(list)->head_offset])
+#define LL_head(list, data) ((struct ListHeader *)&((uint8_t *)data)[(list)->head_offset])
+#define LL_data(list, data) ((void *)&((uint8_t *)data)[-1*(list)->head_offset])
 
 #define LINKED_LIST_INIT(list, type, field) { \
    .head = {&list.head, &list.head}, \
    .head_offset=offsetof(type, field)}
 
 #define LL_for_each(list, curr) \
-   for (curr = LL_DATA(list, (list)->head.next); \
-         LL_HEAD(list, curr) != &(list)->head; \
-         curr = LL_DATA(list, LL_HEAD(list, curr)->next))
+   for (curr = LL_data(list, (list)->head.next); \
+         LL_head(list, curr) != &(list)->head; \
+         curr = LL_data(list, LL_head(list, curr)->next))
 
 struct ListHeader {
    struct ListHeader *next, *prev;
@@ -31,6 +31,7 @@ void *LL_dequeue(struct LinkedList *list);
 void LL_del(struct ListHeader *del);
 void LL_add_prev(struct ListHeader *new, struct ListHeader *cur);
 void LL_add(struct ListHeader *new, struct ListHeader *cur);
+void *LL_next(struct LinkedList *list, void *curr);
 int LL_empty(struct LinkedList *list);
 
 #endif

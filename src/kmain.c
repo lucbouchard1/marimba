@@ -9,6 +9,7 @@
 #include "klog.h"
 #include "syscall.h"
 #include "proc.h"
+#include "files.h"
 #include "drivers/keyboard/keyboard.h"
 #include "drivers/serial/serial.h"
 
@@ -17,6 +18,23 @@ static struct PhysicalMMap map;
 #ifdef STRESS_TEST
 extern void stress_test();
 #endif
+
+void keyboard_io(void *arg)
+{
+   struct OpenFile *f;
+   char buff;
+
+   f = FILE_open("ps2", 0);
+   if (!f) {
+      klog(KLOG_LEVEL_WARN, "failed to initialize keyboard driver");
+      return;
+   }
+
+   while (1) {
+      FILE_read(f, &buff, 1);
+      printk("%c", buff);
+   }
+}
 
 void test_func(void *arg)
 {
@@ -29,7 +47,6 @@ void test_func(void *arg)
 
 void kmain(uint32_t mb_magic, uint32_t mb_addr)
 {
-   struct KeyboardDevice *kdev;
    int val1 = 20;
    int val2 = 30;
 
@@ -52,6 +69,7 @@ void kmain(uint32_t mb_magic, uint32_t mb_addr)
 
    PROC_create_process("test_process_1", &test_func, &val1);
    PROC_create_process("test_process_2", &test_func, &val2);
+   PROC_create_process("keyboard_io", &keyboard_io, NULL);
 
    while(1)
       PROC_run();

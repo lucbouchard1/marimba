@@ -16,6 +16,7 @@ struct Process *next_proc = &main_proc;
 static struct ProcessState {
    struct ProcessQueue ready_queue;
    struct LinkedList procs;
+   int sleep_curr;
 } proc_state = {
    .ready_queue = PROC_QUEUE_INIT(proc_state.ready_queue),
    .procs = LINKED_LIST_INIT(proc_state.procs, struct Process, procs),
@@ -48,7 +49,7 @@ int PROC_queue_empty(struct ProcessQueue *queue)
 void PROC_block_on(struct ProcessQueue *queue, int enable_ints)
 {
    proc_queue_enqueue(queue, curr_proc);
-   curr_proc = NULL;
+   proc_state.sleep_curr = 1;
 
    if (enable_ints)
       IRQ_enable();
@@ -100,9 +101,14 @@ void PROC_reschedule()
 {
    IRQ_disable();
 
-   if (curr_proc)
-      proc_queue_enqueue(&proc_state.ready_queue, curr_proc);
-   next_proc = proc_queue_dequeue(&proc_state.ready_queue);
+   if (PROC_queue_empty(&proc_state.ready_queue)) {
+      next_proc = &main_proc;
+   } else {
+      if (curr_proc && !proc_state.sleep_curr)
+         proc_queue_enqueue(&proc_state.ready_queue, curr_proc);
+      next_proc = proc_queue_dequeue(&proc_state.ready_queue);
+      proc_state.sleep_curr = 0;
+   }
 
    IRQ_enable();
 }
@@ -165,6 +171,6 @@ void PROC_run()
 {
    if (PROC_queue_empty(&proc_state.ready_queue))
       return;
-
+   proc_state.sleep_curr = 1;
    yield();
 }
