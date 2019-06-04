@@ -4,6 +4,8 @@
 #include "types.h"
 #include "list.h"
 
+#define PROC_QUEUE_INIT(name) {.list=LINKED_LIST_INIT(name.list, struct Process, queue)}
+
 typedef void (*kproc_t)(void*);
 
 struct Process {

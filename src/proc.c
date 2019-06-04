@@ -15,16 +15,8 @@ static struct ProcessState {
    struct ProcessQueue ready_queue;
    struct LinkedList procs;
 } proc_state = {
-   .ready_queue.list = {
-      .head.next = &proc_state.ready_queue.list.head,
-      .head.prev = &proc_state.ready_queue.list.head,
-      .head_offset = offsetof(struct Process, queue)
-   },
-   .procs = {
-      .head.next = &proc_state.procs.head,
-      .head.prev = &proc_state.procs.head,
-      .head_offset = offsetof(struct Process, procs)
-   }
+   .ready_queue = PROC_QUEUE_INIT(proc_state.ready_queue),
+   .procs = LINKED_LIST_INIT(proc_state.procs, struct Process, procs),
 };
 
 void PROC_queue_init(struct ProcessQueue *queue)

@@ -3,7 +3,9 @@
 
 #include "types.h"
 
-#define LIST_HEADER_INIT(name) {&name, &name}
+#define LINKED_LIST_INIT(list, type, field) { \
+   .head = {&list.head, &list.head}, \
+   .head_offset=offsetof(type, field)}
 
 struct ListHeader {
    struct ListHeader *next, *prev;
