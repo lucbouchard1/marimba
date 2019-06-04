@@ -9,7 +9,9 @@
 
 struct Process *curr_proc = NULL;
 struct Process *next_proc = NULL;
-struct Process main_proc;
+struct Process main_proc = {
+   .name = "main_proc"
+};
 
 static struct ProcessState {
    struct ProcessQueue ready_queue;
@@ -71,6 +73,15 @@ void PROC_yield()
 void PROC_exit()
 {
    process_exit();
+}
+
+void PROC_dump_procs()
+{
+   struct Process *curr;
+
+   LL_for_each(&proc_state.procs, curr)
+      printk("%s\n", curr->name);
+   printk("\n");
 }
 
 int PROC_create_process(const char *name, kproc_t entry_point, void *arg)

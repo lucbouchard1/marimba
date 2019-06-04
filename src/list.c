@@ -1,8 +1,5 @@
 #include "list.h"
 
-#define LL_HEAD(list, data) ((struct ListHeader *)&((uint8_t **)data)[list->head_offset])
-#define LL_DATA(list, data) ((void *)&((uint8_t **)data)[-1*list->head_offset])
-
 static void ll_add(struct ListHeader *new, struct ListHeader *prev,
       struct ListHeader *next)
 {

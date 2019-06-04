@@ -30,6 +30,7 @@ void PROC_yield();
 int PROC_create_process(const char *name, kproc_t entry_point, void *arg);
 void PROC_run();
 void PROC_exit();
+void PROC_dump_procs();
 
 #if ARCH == x86_64
 #include "arch/x86_64/proc.h"
