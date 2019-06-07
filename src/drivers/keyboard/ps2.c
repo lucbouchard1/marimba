@@ -98,6 +98,9 @@ static inline void ps2_wait_readable()
 
 static uint8_t ps2_read_cmd(uint8_t cmd)
 {
+   /* Wait for PS2 cmd port to be ready */
+   ps2_wait_writable();
+
    /* Write command to command port */
    outb(PS2_CMD_PORT, cmd);
 
@@ -110,6 +113,9 @@ static uint8_t ps2_read_cmd(uint8_t cmd)
 
 static void ps2_write_cmd(uint8_t cmd, uint8_t val)
 {
+   /* Wait for PS2 cmd port to be ready */
+   ps2_wait_writable();
+
    /* Write command to command port */
    outb(PS2_CMD_PORT, cmd);
 
