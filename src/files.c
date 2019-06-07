@@ -7,14 +7,17 @@
 static struct Files {
    struct LinkedList files;
    struct LinkedList blocks;
+   struct LinkedList chars;
 } files = {
    .files = LINKED_LIST_INIT(files.files, struct File, file_list),
-   .blocks = LINKED_LIST_INIT(files.blocks, struct BlockDevice, bdev_list)
+   .blocks = LINKED_LIST_INIT(files.blocks, struct BlockDevice, bdev_list),
+   .chars = LINKED_LIST_INIT(files.blocks, struct CharDevice, cdev_list)
 };
 
-void FILE_cdev_init(struct CharDevice *cdev)
+void FILE_cdev_init(struct CharDevice *cdev, struct FileOps *fops)
 {
    memset(cdev, 0, sizeof(struct CharDevice));
+   cdev->fops = fops;
 }
 
 int FILE_register_chrdev(struct CharDevice *cdev, const char *name)
@@ -28,8 +31,10 @@ int FILE_register_chrdev(struct CharDevice *cdev, const char *name)
    new->dev_data = cdev;
    new->name = name;
    new->type = FILE_TYPE_CHAR_DEVICE;
+   cdev->file = new;
 
    LL_enqueue(&files.files, new);
+   LL_enqueue(&files.chars, cdev);
    return 0;
 }
 

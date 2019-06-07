@@ -46,8 +46,9 @@ static struct PS2Device {
    uint8_t shift_pressed;
    char data[PS2_BUFF_SIZE];
    int pos;
+   int num_open;
 } ps2_dev = {
-   .cdev.num_open = 0,
+   .num_open = 0,
    .shift_pressed = 0,
    .pos = 0,
    .blocked_procs = PROC_QUEUE_INIT(ps2_dev.blocked_procs)
@@ -229,8 +230,7 @@ int init_ps2()
    IRQ_set_handler(0x21, ps2_isr, NULL);
    IRQ_clear_mask(0x21);
 
-   FILE_cdev_init(&ps2_dev.cdev);
-   ps2_dev.cdev.fops = &ps2_fops;
+   FILE_cdev_init(&ps2_dev.cdev, &ps2_fops);
    FILE_register_chrdev(&ps2_dev.cdev, "ps2");
    return 0;
 }
@@ -252,7 +252,7 @@ struct OpenFile *ps2_open(struct File *file, uint32_t flags)
    ret->fd.file = file;
 
    IRQ_disable();
-   ps2_dev.cdev.num_open++;
+   ps2_dev.num_open++;
    ret->pos = ps2_dev.pos;
    IRQ_enable();
 
@@ -284,8 +284,6 @@ void ps2_close(struct OpenFile *fd)
    kfree(user);
 
    IRQ_disable();
-   ps2_dev.cdev.num_open--;
-   if (!ps2_dev.cdev.num_open)
-      cleanup_ps2();
+   ps2_dev.num_open--;
    IRQ_enable();
 }

@@ -16,7 +16,8 @@ struct FileOps {
 
 struct CharDevice {
    struct FileOps *fops;
-   int num_open;
+
+   struct File *file;
    struct ListHeader cdev_list;
 };
 
@@ -40,7 +41,7 @@ struct File {
 };
 
 
-void FILE_cdev_init(struct CharDevice *cdev);
+void FILE_cdev_init(struct CharDevice *cdev, struct FileOps *fops);
 int FILE_register_chrdev(struct CharDevice *cdev, const char *name);
 struct OpenFile *FILE_open(const char *name, uint32_t flags);
 void FILE_read(struct OpenFile *fd, char *buff, size_t len);
