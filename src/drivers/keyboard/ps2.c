@@ -31,7 +31,7 @@
 #define PS2_BUFF_SIZE 128
 #define BUFF_POS(pos) ((pos == -1 ? PS2_BUFF_SIZE-1 : pos) % PS2_BUFF_SIZE)
 
-struct OpenFile *ps2_open(uint32_t flags);
+struct OpenFile *ps2_open(struct File *file, uint32_t flags);
 int ps2_read(struct OpenFile *fd, char *dest, size_t len);
 void ps2_close(struct OpenFile *fd);
 
@@ -53,13 +53,10 @@ static struct PS2Device {
    .blocked_procs = PROC_QUEUE_INIT(ps2_dev.blocked_procs)
 };
 
-struct File ps2_file = {
+struct FileOps ps2_fops = {
    .open = &ps2_open,
    .close = &ps2_close,
    .read = &ps2_read,
-   .type = FILE_TYPE_CHAR_DEVICE,
-   .dev_data = &ps2_dev,
-   .name = "ps2"
 };
 
 static inline char consumer_read_next(struct OpenPS2 *user)
@@ -180,6 +177,7 @@ static void ps2_isr(int irq, int err, void *arg)
    PROC_unblock_all(&ps2_dev.blocked_procs);
 }
 
+/* TODO: Dont initialize interrupts and stuff on init, but on first open */
 int init_ps2()
 {
    uint8_t cntl_cfg, resp;
@@ -231,6 +229,9 @@ int init_ps2()
    IRQ_set_handler(0x21, ps2_isr, NULL);
    IRQ_clear_mask(0x21);
 
+   FILE_cdev_init(&ps2_dev.cdev);
+   ps2_dev.cdev.fops = &ps2_fops;
+   FILE_register_chrdev(&ps2_dev.cdev, "ps2");
    return 0;
 }
 
@@ -241,18 +242,16 @@ int cleanup_ps2()
    return 0;
 }
 
-struct OpenFile *ps2_open(uint32_t flags)
+struct OpenFile *ps2_open(struct File *file, uint32_t flags)
 {
    struct OpenPS2 *ret;
 
    ret = kmalloc(sizeof(struct OpenPS2));
    if (!ret)
       return NULL;
-   ret->fd.file = &ps2_file;
+   ret->fd.file = file;
 
    IRQ_disable();
-   if (!ps2_dev.cdev.num_open)
-      init_ps2();
    ps2_dev.cdev.num_open++;
    ret->pos = ps2_dev.pos;
    IRQ_enable();
