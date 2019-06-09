@@ -55,6 +55,8 @@
 #define ATA_CMD_IDENTIFY_PACKET   0xA1
 #define ATA_CMD_IDENTIFY          0xEC
 
+#define ATA_BLOCK_SIZE 512
+
 int ata_probe(struct PCIDriver *driver);
 
 static struct ATAPCIDriver {
@@ -66,6 +68,7 @@ static struct ATAPCIDriver {
    .driv.bdev = {
       .name = "ata",
       .type = MASS_STORAGE,
+      .blk_size = ATA_BLOCK_SIZE,
    },
    .driv.id = {
       .class = 1,
@@ -104,9 +107,8 @@ static void ata_read_block(struct ATAPCIDriver *ata, uint16_t *buff)
 
    ata_wait_data_ready(ata);
 
-   for (i = 0; i < 256; i++) {
+   for (i = 0; i < ATA_BLOCK_SIZE/2; i++)
       buff[i] = inw(ata->base + DATA_REG_OFF);
-   }
 
    ata_400ns_delay(ata);
 }
@@ -115,9 +117,7 @@ int ata_probe(struct PCIDriver *driver)
 {
    struct PCIConfigHeader_0 hdr;
    struct ATAPCIDriver *ata = (struct ATAPCIDriver *)driver;
-   uint16_t iden[256];
-
-   memset(iden, 0, 512);
+   uint16_t iden[ATA_BLOCK_SIZE/2];
 
    PCI_read_config_header_0(driver->dev, &hdr);
 
@@ -137,16 +137,25 @@ int ata_probe(struct PCIDriver *driver)
    outb(ata->base + CYL_LOW_REG_OFF, 0);
    outb(ata->base + CYL_HIGH_REG_OFF, 0);
    outb(ata->base + CMD_REG_OFF, ATA_CMD_IDENTIFY);
-   ata_wait_not_busy(ata);
-   if (ata_check_err(ata)) {
-      klog(KLOG_LEVEL_WARN, "ata hard disk uses unsupported ATAPI interface");
+
+   if (!inb(ata->base + STATUS_REG_OFF)) {
+      klog(KLOG_LEVEL_WARN, "ata device not found");
       return -1;
    }
 
+   ata_wait_not_busy(ata);
+   if (ata_check_err(ata)) {
+      klog(KLOG_LEVEL_WARN, "ata device uses unsupported ATAPI interface");
+      return -1;
+   }
    ata_read_block(ata, iden);
 
-   printk("%x\n", iden[83]);
+   if (!(iden[83] & (1<<10))) {
+      klog(KLOG_LEVEL_WARN, "ata uses unsupported 28-bit LDA");
+      return -1;
+   }
 
+   ata->driv.bdev.total_len = ATA_BLOCK_SIZE * *((uint64_t *)(iden + 100));
    ata->irq = 14;
    ata->master = hdr.bar4;
    ata->slave = 0;
