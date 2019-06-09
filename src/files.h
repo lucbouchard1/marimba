@@ -24,6 +24,7 @@ struct CharDev {
 enum BlockDevType { MASS_STORAGE, PARTITION };
 
 struct BlockDev {
+   int (*probe)(struct BlockDev *dev);
    int (*read_block)(struct BlockDev *dev, uint64_t blk_num, void *dst);
    size_t blk_size;
    size_t total_len;
@@ -47,6 +48,8 @@ struct File {
 
 void FILE_cdev_init(struct CharDev *cdev, struct FileOps *fops);
 int FILE_register_chrdev(struct CharDev *cdev, const char *name);
+int BLK_register(struct BlockDev *bdev);
+struct BlockDev *BLK_open(const char *name);
 struct OpenFile *FILE_open(const char *name, uint32_t flags);
 void FILE_read(struct OpenFile *fd, char *buff, size_t len);
 void FILE_close(struct OpenFile *fd);

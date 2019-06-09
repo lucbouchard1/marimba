@@ -57,6 +57,7 @@ void kmain(uint32_t mb_magic, uint32_t mb_addr)
 //   PROC_create_process("test_process_1", &test_func, &val1);
 //   PROC_create_process("test_process_2", &test_func, &val2);
    PROC_create_process("keyboard_io", &keyboard_io, NULL);
+   PROC_create_process("filesystem", &filesystem_init, NULL);
 
    while(1) {
       PROC_run();

@@ -2,6 +2,7 @@
 #define __PCI_H__
 
 #include "../types.h"
+#include "../files.h"
 
 #define PCI_CONFIG_ADDR 0xCF8
 #define PCI_CONFIG_DATA 0xCFC
@@ -28,6 +29,27 @@ struct PCIConfigHeader {
    uint8_t bist;
 } __attribute__((packed));
 
+struct PCIDriver;
+
+typedef int (*pci_probe_t)(struct PCIDriver *driver);
+
+struct PCIDevice {
+   struct ListHeader list;
+   struct PCIDevId id;
+   uint8_t bus;
+   uint8_t slot;
+   uint8_t func;
+   struct PCIConfigHeader hdr;
+};
+
+struct PCIDriver {
+   struct BlockDev bdev;
+   struct PCIDevId id;
+   pci_probe_t probe;
+   struct PCIDevice *dev;
+};
+
 int PCI_enum();
+int PCI_register(struct PCIDriver *driver);
 
 #endif

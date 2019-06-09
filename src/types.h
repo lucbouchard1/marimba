@@ -41,6 +41,12 @@ struct PhysicalMMap {
 #define offsetof(a,b) ((offset_t)(&(((a*)(0))->b)))
 #endif
 
+#ifndef container_of
+#define container_of(ptr, type, member) ({                      \
+        const typeof( ((type *)0)->member ) *__mptr = (ptr);    \
+        (type *)( (char *)__mptr - offsetof(type,member) );})
+#endif
+
 static inline offset_t ptr_to_int(void *p)
 {
    return (offset_t)p;

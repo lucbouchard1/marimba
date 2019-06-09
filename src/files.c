@@ -38,6 +38,29 @@ int FILE_register_chrdev(struct CharDev *cdev, const char *name)
    return 0;
 }
 
+int BLK_register(struct BlockDev *bdev)
+{
+   LL_enqueue(&files.blocks, bdev);
+   return 0;
+}
+
+struct BlockDev *BLK_open(const char *name)
+{
+   struct BlockDev *curr, *ret = NULL;
+
+   LL_for_each(&files.blocks, curr) {
+      if (!strcmp(name, curr->name)) {
+         if (!curr->probe(curr))
+            ret = curr;
+         break;
+      }
+   }
+
+   if (!ret)
+      klog(KLOG_LEVEL_DEBUG, "failed to open block device %s", name);
+   return ret;
+}
+
 struct OpenFile *FILE_open(const char *name, uint32_t flags)
 {
    struct File *curr;
@@ -77,8 +100,12 @@ void FILE_dump_files()
  * Temporary solution for registering available devices
  */
 extern int ps2_init_module();
+extern int ata_init_module();
 void FILE_temp_dev_init()
 {
    ps2_init_module();
    klog(KLOG_LEVEL_INFO, "ps2 device driver registered");
+
+   ata_init_module();
+   klog(KLOG_LEVEL_INFO, "ata device driver registered");
 }
