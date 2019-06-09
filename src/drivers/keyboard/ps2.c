@@ -184,8 +184,7 @@ static void ps2_isr(int irq, int err, void *arg)
    PROC_unblock_all(&ps2_dev.blocked_procs);
 }
 
-/* TODO: Dont initialize interrupts and stuff on init, but on first open */
-int init_ps2()
+int ps2_init()
 {
    uint8_t cntl_cfg, resp;
 
@@ -241,9 +240,8 @@ int init_ps2()
    return 0;
 }
 
-int cleanup_ps2()
+int ps2_cleanup()
 {
-   // TODO: Implement IRQ_release_handler!!
    IRQ_set_mask(0x21);
    return 0;
 }
@@ -258,6 +256,8 @@ struct OpenFile *ps2_open(struct File *file, uint32_t flags)
    ret->fd.file = file;
 
    IRQ_disable();
+   if (!ps2_dev.num_open)
+      ps2_init();
    ps2_dev.num_open++;
    ret->pos = ps2_dev.pos;
    IRQ_enable();
@@ -291,5 +291,14 @@ void ps2_close(struct OpenFile *fd)
 
    IRQ_disable();
    ps2_dev.num_open--;
+   if (!ps2_dev.num_open)
+      ps2_cleanup();
    IRQ_enable();
+}
+
+int ps2_init_module()
+{
+   FILE_cdev_init(&ps2_dev.cdev, &ps2_fops);
+   FILE_register_chrdev(&ps2_dev.cdev, "ps2");
+   return 0;
 }

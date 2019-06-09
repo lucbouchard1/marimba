@@ -76,9 +76,9 @@ void FILE_dump_files()
 /**
  * Temporary solution for registering available devices
  */
-extern int init_ps2();
+extern int ps2_init_module();
 void FILE_temp_dev_init()
 {
-   init_ps2();
+   ps2_init_module();
    klog(KLOG_LEVEL_INFO, "ps2 device driver registered");
 }
