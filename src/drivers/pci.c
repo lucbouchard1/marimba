@@ -1,6 +1,22 @@
 #include "pci.h"
-#include "../printk.h"
+#include "../klog.h"
 #include "../io.h"
+#include "../list.h"
+#include "../kmalloc.h"
+
+struct PCIDevice {
+   struct ListHeader list;
+   uint8_t bus;
+   uint8_t dev;
+   uint8_t func;
+   struct PCIConfigHeader hdr;
+};
+
+static struct PCI {
+   struct LinkedList pci_dev_list;
+} pci_state = {
+   .pci_dev_list = LINKED_LIST_INIT(pci_state.pci_dev_list, struct PCIDevice, list)
+};
 
 uint32_t pci_read_config(uint8_t bus, uint8_t dev, uint8_t func, uint8_t offset)
 {
@@ -34,9 +50,10 @@ void pci_read_config_header(struct PCIConfigHeader *hdr,
       rhdr[offset] = pci_read_config(bus, dev, func, offset*4);
 }
 
-int pci_check_device(uint8_t bus, uint8_t dev)
+int pci_enum_device(uint8_t bus, uint8_t dev)
 {
    struct PCIConfigHeader hdr;
+   struct PCIDevice *new;
    uint8_t func;
 
    if (pci_read_config_vendor(bus, dev, 0) == 0xffff)
@@ -46,13 +63,16 @@ int pci_check_device(uint8_t bus, uint8_t dev)
       pci_read_config_header(&hdr, bus, dev, func);
       if (hdr.vendor_id == 0xffff)
          return 1;
-
-      printk("Vendor: %x\n", hdr.vendor_id);
-      printk("Device: %x\n", hdr.device_id);
-      printk("Class Code: %x\n", hdr.class);
-      printk("Sub Class Code: %x\n", hdr.sub_class);
-      printk("Program Interface: %x\n", hdr.prog_if);
-      printk("\n");  
+      new = kmalloc(sizeof(struct PCIDevice));
+      if (!new)
+         return -1;
+      new->bus = bus;
+      new->dev = dev;
+      new->func = func;
+      new->hdr = hdr;
+      LL_enqueue(&pci_state.pci_dev_list, new);
+      klog(KLOG_LEVEL_INFO, "enumerated PCI device with class 0x%X on bus %d device %d func %d",
+            new->hdr.class, new->bus, new->dev, new->func);
    }
 
    return 1;
@@ -60,12 +80,18 @@ int pci_check_device(uint8_t bus, uint8_t dev)
 
 int PCI_enum()
 {
+   struct PCIDevice *curr;
    uint16_t bus;
    uint8_t device;
 
    for (bus = 0; bus < 256; bus++)
       for (device = 0; device < 32; device++)
-         pci_check_device(bus, device);
+         pci_enum_device(bus, device);
+
+   LL_for_each(&pci_state.pci_dev_list, curr) {
+      printk("Bus %d  Device %d  Func %d\n", curr->bus, curr->dev, curr->func);
+      printk("   Class %x  Subclass %x\n\n", curr->hdr.class, curr->hdr.sub_class);
+   }
 
    return 0;
 }
