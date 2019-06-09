@@ -10,17 +10,17 @@ static struct Files {
    struct LinkedList chars;
 } files = {
    .files = LINKED_LIST_INIT(files.files, struct File, file_list),
-   .blocks = LINKED_LIST_INIT(files.blocks, struct BlockDevice, bdev_list),
-   .chars = LINKED_LIST_INIT(files.blocks, struct CharDevice, cdev_list)
+   .blocks = LINKED_LIST_INIT(files.blocks, struct BlockDev, bdev_list),
+   .chars = LINKED_LIST_INIT(files.blocks, struct CharDev, cdev_list)
 };
 
-void FILE_cdev_init(struct CharDevice *cdev, struct FileOps *fops)
+void FILE_cdev_init(struct CharDev *cdev, struct FileOps *fops)
 {
-   memset(cdev, 0, sizeof(struct CharDevice));
+   memset(cdev, 0, sizeof(struct CharDev));
    cdev->fops = fops;
 }
 
-int FILE_register_chrdev(struct CharDevice *cdev, const char *name)
+int FILE_register_chrdev(struct CharDev *cdev, const char *name)
 {
    struct File *new;
 

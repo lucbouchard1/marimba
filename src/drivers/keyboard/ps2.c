@@ -41,7 +41,7 @@ struct OpenPS2 {
 };
 
 static struct PS2Device {
-   struct CharDevice cdev;
+   struct CharDev cdev;
    struct ProcessQueue blocked_procs;
    uint8_t shift_pressed;
    char data[PS2_BUFF_SIZE];

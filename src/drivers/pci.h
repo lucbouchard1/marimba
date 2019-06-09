@@ -6,6 +6,13 @@
 #define PCI_CONFIG_ADDR 0xCF8
 #define PCI_CONFIG_DATA 0xCFC
 
+struct PCIDevId {
+   uint16_t vendor_id;
+   uint16_t device_id;
+   uint8_t class;
+   uint8_t sub_class;
+};
+
 struct PCIConfigHeader {
    uint16_t vendor_id;
    uint16_t device_id;

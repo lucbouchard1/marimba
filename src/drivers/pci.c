@@ -3,6 +3,7 @@
 #include "../io.h"
 #include "../list.h"
 #include "../kmalloc.h"
+#include "../files.h"
 
 struct PCIDevice {
    struct ListHeader list;
@@ -78,6 +79,11 @@ int pci_enum_device(uint8_t bus, uint8_t dev)
 
    return 1;
 }
+
+// int PCI_register(struct BlockDevice *dev, )
+// {
+
+// }
 
 int PCI_enum()
 {
