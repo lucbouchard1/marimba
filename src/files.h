@@ -2,6 +2,7 @@
 #define __FILES_H__
 
 #include "types.h"
+#include "list.h"
 
 #define FILE_TYPE_CHAR_DEVICE 'c'
 #define FILE_TYPE_BLOCK_DEVICE 'b'
@@ -16,13 +17,19 @@ struct FileOps {
 
 struct CharDevice {
    struct FileOps *fops;
-
    struct File *file;
    struct ListHeader cdev_list;
 };
 
+enum BlockDevType { MASS_STORAGE, PARTITION };
+
 struct BlockDevice {
-   int num_open;
+   int (*read_block)(struct BlockDevice *dev, uint64_t blk_num, void *dst);
+   size_t blk_size;
+   size_t total_len;
+   const char *name;
+   enum BlockDevType type;
+   uint8_t fs_type;
    struct ListHeader bdev_list;
 };
 
@@ -32,14 +39,11 @@ struct OpenFile {
 
 struct File {
    struct FileOps fops;
-
    char type;
    void *dev_data;
    const char *name;
-
    struct ListHeader file_list;
 };
-
 
 void FILE_cdev_init(struct CharDevice *cdev, struct FileOps *fops);
 int FILE_register_chrdev(struct CharDevice *cdev, const char *name);
