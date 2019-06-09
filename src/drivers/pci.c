@@ -44,6 +44,23 @@ void pci_read_config_header(struct PCIConfigHeader *hdr,
       rhdr[offset] = pci_read_config(bus, slot, func, offset*4);
 }
 
+int PCI_read_config_header_0(struct PCIDevice *dev, struct PCIConfigHeader_0 *hdr)
+{
+   uint32_t *rhdr = (uint32_t *)hdr;
+   uint8_t offset;
+
+   if (dev->hdr.header_type != 0) {
+      klog(KLOG_LEVEL_WARN, "attempting to read pci config header of incorrect type");
+      return -1;
+   }
+
+   hdr->hdr = dev->hdr;
+
+   for (offset = 4; offset < 10; offset++)
+      rhdr[offset] = pci_read_config(dev->bus, dev->slot, dev->func, offset*4);
+   return 0;
+}
+
 int pci_enum_device(uint8_t bus, uint8_t slot)
 {
    struct PCIConfigHeader hdr;

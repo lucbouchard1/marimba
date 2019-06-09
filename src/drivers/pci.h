@@ -29,6 +29,16 @@ struct PCIConfigHeader {
    uint8_t bist;
 } __attribute__((packed));
 
+struct PCIConfigHeader_0 {
+   struct PCIConfigHeader hdr;
+   uint32_t bar0;
+   uint32_t bar1;
+   uint32_t bar2;
+   uint32_t bar3;
+   uint32_t bar4;
+   uint32_t bar5;
+};
+
 struct PCIDriver;
 
 typedef int (*pci_probe_t)(struct PCIDriver *driver);
@@ -51,5 +61,6 @@ struct PCIDriver {
 
 int PCI_enum();
 int PCI_register(struct PCIDriver *driver);
+int PCI_read_config_header_0(struct PCIDevice *dev, struct PCIConfigHeader_0 *hdr);
 
 #endif
