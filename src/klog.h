@@ -11,6 +11,10 @@
 #define KLOG_LEVEL_CRIT   11  // A serious failure occurred, but the system will remain up.
 #define KLOG_LEVEL_EMERG  13  // A failure occurred and a crash is likely.
 
+#ifndef KLOG_MIN_LOG_LEVEL
+#define KLOG_MIN_LOG_LEVEL KLOG_LEVEL_DEBUG
+#endif
+
 static inline void log_level(int dbg_level)
 {
    char *level_str;
@@ -52,9 +56,11 @@ static inline void log_level(int dbg_level)
 
 #define klog(DBG_LEVEL, fmt, ...) \
 do { \
-   log_level(DBG_LEVEL); \
-   printk((fmt), ##__VA_ARGS__ ); \
-   printk("\n"); \
+   if (DBG_LEVEL > KLOG_MIN_LOG_LEVEL) { \
+      log_level(DBG_LEVEL); \
+      printk((fmt), ##__VA_ARGS__ ); \
+      printk("\n"); \
+   } \
 } while (0); \
 
 #endif

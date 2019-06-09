@@ -18,7 +18,8 @@ static struct PCI {
    .pci_dev_list = LINKED_LIST_INIT(pci_state.pci_dev_list, struct PCIDevice, list)
 };
 
-uint32_t pci_read_config(uint8_t bus, uint8_t dev, uint8_t func, uint8_t offset)
+uint32_t pci_read_config(uint8_t bus, uint8_t dev, uint8_t func,
+      uint8_t offset)
 {
    uint32_t address, lbus  = (uint32_t)bus, lslot = (uint32_t)dev;
    uint32_t lfunc = (uint32_t)func;
@@ -80,18 +81,12 @@ int pci_enum_device(uint8_t bus, uint8_t dev)
 
 int PCI_enum()
 {
-   struct PCIDevice *curr;
    uint16_t bus;
    uint8_t device;
 
    for (bus = 0; bus < 256; bus++)
       for (device = 0; device < 32; device++)
          pci_enum_device(bus, device);
-
-   LL_for_each(&pci_state.pci_dev_list, curr) {
-      printk("Bus %d  Device %d  Func %d\n", curr->bus, curr->dev, curr->func);
-      printk("   Class %x  Subclass %x\n\n", curr->hdr.class, curr->hdr.sub_class);
-   }
 
    return 0;
 }
