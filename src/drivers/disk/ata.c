@@ -3,12 +3,18 @@
 #include "../../io.h"
 #include "../../klog.h"
 #include "../../string.h"
+#include "../../interrupts.h"
+#include "../../proc.h"
+#include "../../list.h"
 #include "../pci.h"
 
 #define ATA_LEGACY_PRIMARY_BASE 0x1F0
 #define ATA_LEGACY_PRIMARY_CNTL 0x3F6
 #define ATA_LEGACY_SECONDARY_BASE 0x170
 #define ATA_LEGACY_SECONDARY_CNTL 0x376
+
+#define ATA_PRIMARY_IRQ (0x20 + 14)
+#define ATA_SECONDARY_IRQ (0x20 + 15)
 
 #define DATA_REG_OFF 0
 #define ERR_REG_OFF 1
@@ -58,24 +64,35 @@
 #define ATA_BLOCK_SIZE 512
 
 int ata_probe(struct PCIDriver *driver);
+int ata_read_block(struct BlockDev *dev, uint64_t blk_num, void *dst);
+
+struct ATARequest {
+   struct ListHeader list;
+   uint64_t lda;
+   int read;
+};
 
 static struct ATAPCIDriver {
    struct PCIDriver driv;
    uint32_t base, cntl_base, master;
    uint8_t irq, slave;
-   struct ATARequest *req_head, *req_tail;
+   struct ProcessQueue blocked;
+   struct LinkedList requests;
 } pci_ata_dev = {
    .driv.bdev = {
       .name = "ata",
       .type = MASS_STORAGE,
       .blk_size = ATA_BLOCK_SIZE,
+      .read_block = &ata_read_block,
    },
    .driv.id = {
       .class = 1,
       .sub_class = 1
    },
    .driv.probe = &ata_probe,
-   .driv.dev = NULL
+   .driv.dev = NULL,
+   .blocked = PROC_QUEUE_INIT(pci_ata_dev.blocked),
+   .requests = LINKED_LIST_INIT(pci_ata_dev.requests, struct ATARequest, list),
 };
 
 static void ata_400ns_delay(struct ATAPCIDriver *driv)
@@ -101,7 +118,7 @@ static void ata_wait_data_ready(struct ATAPCIDriver *driv)
    while (!(inb(driv->base + STATUS_REG_OFF) & ATA_SR_DRQ));
 }
 
-static void ata_read_block(struct ATAPCIDriver *ata, uint16_t *buff)
+static void ata_read(struct ATAPCIDriver *ata, uint16_t *buff)
 {
    int i;
 
@@ -111,6 +128,58 @@ static void ata_read_block(struct ATAPCIDriver *ata, uint16_t *buff)
       buff[i] = inw(ata->base + DATA_REG_OFF);
 
    ata_400ns_delay(ata);
+}
+
+static void ata_isr(int irq, int err, void *arg)
+{
+   struct ATAPCIDriver *ata = (struct ATAPCIDriver *)arg;
+
+   klog(KLOG_LEVEL_DEBUG, "ata interrupt");
+
+   if (ata_check_err(ata))
+      klog(KLOG_LEVEL_WARN, "ata error detected");
+
+   PROC_unblock_head(&ata->blocked);
+}
+
+static void ata_write_lda(struct ATAPCIDriver *ata, uint64_t lda)
+{
+   outb(ata->base + SECT_CNT_REG_OFF, lda & 0xffff);
+   outb(ata->base + CYL_LOW_REG_OFF, (lda >> 16) & 0xffff);
+   outb(ata->base + CYL_HIGH_REG_OFF, (lda >> 32) & 0xffff);
+}
+
+int ata_read_block(struct BlockDev *dev, uint64_t blk_num, void *dst)
+{
+   struct ATAPCIDriver *ata = container_of(dev, struct ATAPCIDriver, driv.bdev);
+   struct ATARequest req, *next;
+
+   req.lda = blk_num;
+   req.read = 1;
+
+   IRQ_disable();
+   if (LL_empty(&ata->requests)) {
+      ata_write_lda(ata, req.lda);
+      outb(ata->base + CMD_REG_OFF, ATA_CMD_READ_PIO_EXT);
+   }
+   LL_enqueue(&ata->requests, &req);
+   PROC_block_on(&ata->blocked, 1);
+
+   /* Read block data */
+   if (!(inb(ata->base + STATUS_REG_OFF) & ATA_SR_DRQ)) {
+      klog(KLOG_LEVEL_WARN, "ata read failed");
+      return -1;
+   }
+   LL_dequeue(&ata->requests);
+   ata_read(ata, dst);
+
+   /* Initiate next read */
+   next = LL_head(&ata->requests);
+   if (next) {
+      ata_write_lda(ata, next->lda);
+      outb(ata->base + CMD_REG_OFF, ATA_CMD_READ_PIO_EXT);
+   }
+   return 0;
 }
 
 int ata_probe(struct PCIDriver *driver)
@@ -133,9 +202,7 @@ int ata_probe(struct PCIDriver *driver)
 
    outb(ata->base + DRIVE_REG_OFF, ATA_SELECT_MASTER);
    ata_400ns_delay(ata);
-   outb(ata->base + SECT_CNT_REG_OFF, 0);
-   outb(ata->base + CYL_LOW_REG_OFF, 0);
-   outb(ata->base + CYL_HIGH_REG_OFF, 0);
+   ata_write_lda(ata, 0);
    outb(ata->base + CMD_REG_OFF, ATA_CMD_IDENTIFY);
 
    if (!inb(ata->base + STATUS_REG_OFF)) {
@@ -148,7 +215,7 @@ int ata_probe(struct PCIDriver *driver)
       klog(KLOG_LEVEL_WARN, "ata device uses unsupported ATAPI interface");
       return -1;
    }
-   ata_read_block(ata, iden);
+   ata_read(ata, iden);
 
    if (!(iden[83] & (1<<10))) {
       klog(KLOG_LEVEL_WARN, "ata uses unsupported 28-bit LDA");
@@ -156,9 +223,16 @@ int ata_probe(struct PCIDriver *driver)
    }
 
    ata->driv.bdev.total_len = ATA_BLOCK_SIZE * *((uint64_t *)(iden + 100));
-   ata->irq = 14;
+   ata->irq = ATA_PRIMARY_IRQ;
    ata->master = hdr.bar4;
    ata->slave = 0;
+
+   IRQ_set_handler(ata->irq, ata_isr, ata);
+   IRQ_clear_mask(ata->irq);
+
+   /* Enable interrupts */
+   outb(ata->cntl_base, 0x00);
+
    return 0;
 }
 

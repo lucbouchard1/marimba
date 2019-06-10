@@ -23,10 +23,18 @@ void *LL_next(struct LinkedList *list, void *curr)
    if (LL_empty(list))
       return NULL;
 
-   if (LL_head(list, curr)->next == &list->head)
-      return LL_data(list, list->head.next);
+   if (LL_nhead(list, curr)->next == &list->head)
+      return LL_ndata(list, list->head.next);
    else
-      return LL_data(list, LL_head(list, curr)->next);
+      return LL_ndata(list, LL_nhead(list, curr)->next);
+}
+
+void *LL_head(struct LinkedList *list)
+{
+   if (LL_empty(list))
+      return NULL;
+
+   return LL_ndata(list, list->head.next);
 }
 
 int LL_empty(struct LinkedList *list)
@@ -56,7 +64,7 @@ void LL_enqueue(struct LinkedList *list, void *data)
 
 void LL_append(struct LinkedList *list, void *data)
 {
-   LL_add_prev(LL_head(list, data), &list->head);
+   LL_add_prev(LL_nhead(list, data), &list->head);
 }
 
 void *LL_dequeue(struct LinkedList *list)
@@ -68,7 +76,7 @@ void *LL_dequeue(struct LinkedList *list)
 
    ret = list->head.next;
    LL_del(ret);
-   return LL_data(list, ret);
+   return LL_ndata(list, ret);
 }
 
 void LL_init(struct LinkedList *list, offset_t head_offset)
