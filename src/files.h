@@ -25,7 +25,6 @@ struct CharDev {
 enum BlockDevType { MASS_STORAGE, PARTITION };
 
 struct BlockDev {
-   int (*probe)(struct BlockDev *dev);
    int (*read_block)(struct BlockDev *dev, uint64_t blk_num, void *dst);
    size_t blk_size;
    size_t total_len;

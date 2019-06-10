@@ -94,13 +94,6 @@ int pci_enum_device(uint8_t bus, uint8_t slot)
    return 1;
 }
 
-static int pci_probe(struct BlockDev *dev)
-{
-   struct PCIDriver *driv = container_of(dev, struct PCIDriver, bdev);
-
-   return driv->probe(driv);
-}
-
 int PCI_register(struct PCIDriver *driver)
 {
    struct PCIDevice *curr;
@@ -108,16 +101,9 @@ int PCI_register(struct PCIDriver *driver)
    LL_for_each(&pci_state.pci_dev_list, curr) {
       if (curr->id.class == driver->id.class &&
             curr->id.sub_class == driver->id.sub_class) {
-         driver->dev = curr;
-         break;
+         driver->probe(curr);
       }
    }
-
-   if (!driver->dev)
-      return -1;
-
-   driver->bdev.probe = &pci_probe;
-   BLK_register(&driver->bdev);
 
    return 0;
 }

@@ -41,8 +41,6 @@ struct PCIConfigHeader_0 {
 
 struct PCIDriver;
 
-typedef int (*pci_probe_t)(struct PCIDriver *driver);
-
 struct PCIDevice {
    struct ListHeader list;
    struct PCIDevId id;
@@ -53,10 +51,8 @@ struct PCIDevice {
 };
 
 struct PCIDriver {
-   struct BlockDev bdev;
    struct PCIDevId id;
-   pci_probe_t probe;
-   struct PCIDevice *dev;
+   int (*probe)(struct PCIDevice *device);
 };
 
 int PCI_enum();

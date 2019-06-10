@@ -46,19 +46,14 @@ int BLK_register(struct BlockDev *bdev)
 
 struct BlockDev *BLK_open(const char *name)
 {
-   struct BlockDev *curr, *ret = NULL;
+   struct BlockDev *curr;
 
-   LL_for_each(&files.blocks, curr) {
-      if (!strcmp(name, curr->name)) {
-         if (!curr->probe(curr))
-            ret = curr;
-         break;
-      }
-   }
+   LL_for_each(&files.blocks, curr)
+      if (!strcmp(name, curr->name))
+         return curr;
 
-   if (!ret)
-      klog(KLOG_LEVEL_DEBUG, "failed to open block device %s", name);
-   return ret;
+   klog(KLOG_LEVEL_DEBUG, "failed to open block device %s", name);
+   return NULL;
 }
 
 struct OFile *FILE_open(const char *name, uint32_t flags)
