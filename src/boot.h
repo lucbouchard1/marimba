@@ -5,7 +5,7 @@
 
 #include "types.h"
 
-int MB_parse_multiboot(struct PhysicalMMap *dest, uint32_t mb_magic, uint32_t mb_addr);
+int BOOT_parse_multiboot(struct PhysicalMMap *dest, uint32_t mb_magic, uint32_t mb_addr);
 
 
 #endif

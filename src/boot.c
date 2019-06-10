@@ -1,4 +1,4 @@
-#include "multiboot.h"
+#include "boot.h"
 #include "printk.h"
 #include "elf.h"
 #include "utils.h"
@@ -86,7 +86,7 @@ static int parse_elf(struct MultibootELFTag *elf, struct PhysicalMMap *dest)
    return ELF_parse_section_headers(dest, elf->sections, elf->num, elf->shndx);
 }
 
-int MB_parse_multiboot(struct PhysicalMMap *dest, uint32_t mb_magic, uint32_t mb_addr)
+int BOOT_parse_multiboot(struct PhysicalMMap *dest, uint32_t mb_magic, uint32_t mb_addr)
 {
    struct MultibootTag *tag = int_to_ptr(mb_addr + 8);
 
