@@ -31,21 +31,16 @@
 #define PS2_BUFF_SIZE 128
 #define BUFF_POS(pos) ((pos == -1 ? PS2_BUFF_SIZE-1 : pos) % PS2_BUFF_SIZE)
 
-struct OpenFile *ps2_open(struct File *file, uint32_t flags);
-int ps2_read(struct OpenFile *fd, char *dest, size_t len);
-void ps2_close(struct OpenFile *fd);
-
-struct OpenPS2 {
-   struct OpenFile fd;
-   int pos;
-};
+int ps2_open(struct INode *inode, struct OFile *file);
+int ps2_read(struct OFile *fd, char *dest, size_t len);
+int ps2_close(struct OFile *fd);
 
 static struct PS2Device {
    struct CharDev cdev;
    struct ProcessQueue blocked_procs;
    uint8_t shift_pressed;
    char data[PS2_BUFF_SIZE];
-   int pos;
+   offset_t pos;
    int num_open;
 } ps2_dev = {
    .num_open = 0,
@@ -54,13 +49,18 @@ static struct PS2Device {
    .blocked_procs = PROC_QUEUE_INIT(ps2_dev.blocked_procs)
 };
 
+struct PS2User {
+   struct PS2Device *dev;
+   offset_t pos;
+};
+
 struct FileOps ps2_fops = {
    .open = &ps2_open,
    .close = &ps2_close,
    .read = &ps2_read,
 };
 
-static inline char consumer_read_next(struct OpenPS2 *user)
+static inline char consumer_read_next(struct PS2User *user)
 {
    char ret = ps2_dev.data[user->pos];
    user->pos = BUFF_POS(user->pos+1);
@@ -73,7 +73,7 @@ static inline void producer_add(char c)
    ps2_dev.pos = BUFF_POS(ps2_dev.pos+1);
 }
 
-static inline int consumer_has_bytes(struct OpenPS2 *user)
+static inline int consumer_has_bytes(struct PS2User *user)
 {
    return !(user->pos == ps2_dev.pos);
 }
@@ -234,9 +234,6 @@ int ps2_init()
 
    IRQ_set_handler(0x21, ps2_isr, NULL);
    IRQ_clear_mask(0x21);
-
-   FILE_cdev_init(&ps2_dev.cdev, &ps2_fops);
-   FILE_register_chrdev(&ps2_dev.cdev, "ps2");
    return 0;
 }
 
@@ -246,28 +243,29 @@ int ps2_cleanup()
    return 0;
 }
 
-struct OpenFile *ps2_open(struct File *file, uint32_t flags)
+int ps2_open(struct INode *inode, struct OFile *file)
 {
-   struct OpenPS2 *ret;
+   struct PS2Device *dev = container_of(inode->cdev, struct PS2Device, cdev);
+   struct PS2User *user;
 
-   ret = kmalloc(sizeof(struct OpenPS2));
-   if (!ret)
-      return NULL;
-   ret->fd.file = file;
+   user = kmalloc(sizeof(struct PS2User));
+   if (!user)
+      return -1;
+   file->private_data = user;
 
    IRQ_disable();
-   if (!ps2_dev.num_open)
+   if (!dev->num_open)
       ps2_init();
-   ps2_dev.num_open++;
-   ret->pos = ps2_dev.pos;
+   dev->num_open++;
+   user->pos = ps2_dev.pos;
    IRQ_enable();
 
-   return (struct OpenFile *)ret;
+   return 0;
 }
 
-int ps2_read(struct OpenFile *fd, char *dest, size_t len)
+int ps2_read(struct OFile *fd, char *dest, size_t len)
 {
-   struct OpenPS2 *user = (struct OpenPS2 *)fd;
+   struct PS2User *user = (struct PS2User *)fd->private_data;
    char *curr = dest;
 
    IRQ_disable();
@@ -283,7 +281,7 @@ int ps2_read(struct OpenFile *fd, char *dest, size_t len)
    return curr - dest;
 }
 
-void ps2_close(struct OpenFile *fd)
+int ps2_close(struct OFile *fd)
 {
    struct OpenPS2 *user = (struct OpenPS2 *)fd;
 
@@ -294,11 +292,13 @@ void ps2_close(struct OpenFile *fd)
    if (!ps2_dev.num_open)
       ps2_cleanup();
    IRQ_enable();
+
+   return 0;
 }
 
 int ps2_init_module()
 {
    FILE_cdev_init(&ps2_dev.cdev, &ps2_fops);
-   FILE_register_chrdev(&ps2_dev.cdev, "ps2");
+   FILE_register_cdev(&ps2_dev.cdev, "ps2");
    return 0;
 }

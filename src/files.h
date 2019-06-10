@@ -7,17 +7,18 @@
 #define FILE_TYPE_CHAR_DEVICE 'c'
 #define FILE_TYPE_BLOCK_DEVICE 'b'
 
-struct File;
+struct OFile;
+struct INode;
 
 struct FileOps {
-   struct OpenFile *(*open)(struct File *file, uint32_t flags);
-   void (*close)(struct OpenFile *fd);
-   int (*read)(struct OpenFile *fd, char *dest, size_t len);
+   int (*open)(struct INode *inode, struct OFile *file);
+   int (*close)(struct OFile *file);
+   int (*read)(struct OFile *file, char *dest, size_t len);
 };
 
 struct CharDev {
    struct FileOps *fops;
-   struct File *file;
+   struct INode *inode;
    struct ListHeader cdev_list;
 };
 
@@ -34,25 +35,30 @@ struct BlockDev {
    struct ListHeader bdev_list;
 };
 
-struct OpenFile {
-   struct File *file;
+struct OFile {
+   struct INode *inode;
+   struct FileOps *fops;
+   void *private_data;
 };
 
-struct File {
-   struct FileOps fops;
-   char type;
-   void *dev_data;
+struct INode {
+   struct FileOps *fops;
+   unsigned int type;
+   union {
+      struct CharDev *cdev;
+      struct BlockDev *bdev;
+   };
    const char *name;
-   struct ListHeader file_list;
+   struct ListHeader inode_list;
 };
 
 void FILE_cdev_init(struct CharDev *cdev, struct FileOps *fops);
-int FILE_register_chrdev(struct CharDev *cdev, const char *name);
+int FILE_register_cdev(struct CharDev *cdev, const char *name);
 int BLK_register(struct BlockDev *bdev);
 struct BlockDev *BLK_open(const char *name);
-struct OpenFile *FILE_open(const char *name, uint32_t flags);
-void FILE_read(struct OpenFile *fd, char *buff, size_t len);
-void FILE_close(struct OpenFile *fd);
+struct OFile *FILE_open(const char *name, uint32_t flags);
+void FILE_read(struct OFile *file, char *buff, size_t len);
+void FILE_close(struct OFile *file);
 void FILE_temp_dev_init();
 
 #endif

@@ -5,7 +5,7 @@
 
 void keyboard_io(void *arg)
 {
-   struct OpenFile *f;
+   struct OFile *f;
    char buff;
 
    f = FILE_open("ps2", 0);
