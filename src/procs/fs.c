@@ -14,7 +14,7 @@ void filesystem_init(void *arg)
       return;
    }
 
-   blk->read_block(blk, 0, buff);
+   blk->read_block(blk, 1, buff);
    printk("Here it is: %x\n", buff[83]);
 
    while (1)

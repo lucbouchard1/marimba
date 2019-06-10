@@ -20,14 +20,15 @@
 #define ERR_REG_OFF 1
 #define FEAT_REG_OFF 1
 #define SECT_CNT_REG_OFF 2
-#define CYL_LOW_REG_OFF 4
-#define CYL_HIGH_REG_OFF 5
+#define LBA_LOW_OFF 3
+#define LBA_MID_OFF 4
+#define LBA_HIGH_OFF 5
 #define DRIVE_REG_OFF 6
 #define STATUS_REG_OFF 7
 #define CMD_REG_OFF 7
 
-#define ATA_SELECT_MASTER 0xA0
-#define ATA_SELECT_SLAVE 0xB0
+#define ATA_SELECT_MASTER 0xE0
+#define ATA_SELECT_SLAVE 0xF0
 
 #define ATA_SR_BSY     0x80    // Busy
 #define ATA_SR_DRDY    0x40    // Drive ready
@@ -68,7 +69,7 @@ int ata_read_block(struct BlockDev *dev, uint64_t blk_num, void *dst);
 
 struct ATARequest {
    struct ListHeader list;
-   uint64_t lda;
+   uint64_t lba;
    int read;
 };
 
@@ -105,17 +106,22 @@ static void ata_400ns_delay(struct ATAPCIDriver *driv)
 
 static void ata_wait_not_busy(struct ATAPCIDriver *driv)
 {
-   while (inb(driv->base + STATUS_REG_OFF) & ATA_SR_BSY);
+   while (inb(driv->cntl_base) & ATA_SR_BSY);
 }
 
 static int ata_check_err(struct ATAPCIDriver *driv)
 {
-   return inb(driv->base + STATUS_REG_OFF) & ATA_SR_ERR;
+   return inb(driv->cntl_base) & ATA_SR_ERR;
+}
+
+static int ata_check_data(struct ATAPCIDriver *driv)
+{
+   return inb(driv->cntl_base) & ATA_SR_DRQ;
 }
 
 static void ata_wait_data_ready(struct ATAPCIDriver *driv)
 {
-   while (!(inb(driv->base + STATUS_REG_OFF) & ATA_SR_DRQ));
+   while (!(inb(driv->cntl_base) & ATA_SR_DRQ));
 }
 
 static void ata_read(struct ATAPCIDriver *ata, uint16_t *buff)
@@ -126,8 +132,6 @@ static void ata_read(struct ATAPCIDriver *ata, uint16_t *buff)
 
    for (i = 0; i < ATA_BLOCK_SIZE/2; i++)
       buff[i] = inw(ata->base + DATA_REG_OFF);
-
-   ata_400ns_delay(ata);
 }
 
 static void ata_isr(int irq, int err, void *arg)
@@ -136,17 +140,27 @@ static void ata_isr(int irq, int err, void *arg)
 
    klog(KLOG_LEVEL_DEBUG, "ata interrupt");
 
-   if (ata_check_err(ata))
-      klog(KLOG_LEVEL_WARN, "ata error detected");
+   /* Read status reg to clear interrupt */
+   inb(ata->base + STATUS_REG_OFF);
+
+   if (ata_check_err(ata) || !ata_check_data(ata)) {
+      klog(KLOG_LEVEL_WARN, "ata error detected: 0x%x", inb(ata->base + ERR_REG_OFF));
+      return;
+   }
 
    PROC_unblock_head(&ata->blocked);
 }
 
-static void ata_write_lda(struct ATAPCIDriver *ata, uint64_t lda)
+static void ata_write_lba(struct ATAPCIDriver *ata, uint64_t lba, uint16_t sectorcount)
 {
-   outb(ata->base + SECT_CNT_REG_OFF, lda & 0xffff);
-   outb(ata->base + CYL_LOW_REG_OFF, (lda >> 16) & 0xffff);
-   outb(ata->base + CYL_HIGH_REG_OFF, (lda >> 32) & 0xffff);
+   outb(ata->base + SECT_CNT_REG_OFF, (sectorcount>>8) & 0xff);
+   outb(ata->base + LBA_LOW_OFF, (lba >> 24) & 0xff);
+   outb(ata->base + LBA_MID_OFF, (lba >> 32) & 0xff);
+   outb(ata->base + LBA_HIGH_OFF, (lba >> 40) & 0xff);
+   outb(ata->base + SECT_CNT_REG_OFF, sectorcount & 0xff);
+   outb(ata->base + LBA_LOW_OFF, (lba >> 0) & 0xff);
+   outb(ata->base + LBA_MID_OFF, (lba >> 8) & 0xff);
+   outb(ata->base + LBA_HIGH_OFF, (lba >> 16) & 0xff);
 }
 
 int ata_read_block(struct BlockDev *dev, uint64_t blk_num, void *dst)
@@ -154,19 +168,19 @@ int ata_read_block(struct BlockDev *dev, uint64_t blk_num, void *dst)
    struct ATAPCIDriver *ata = container_of(dev, struct ATAPCIDriver, driv.bdev);
    struct ATARequest req, *next;
 
-   req.lda = blk_num;
+   req.lba = blk_num;
    req.read = 1;
 
    IRQ_disable();
    if (LL_empty(&ata->requests)) {
-      ata_write_lda(ata, req.lda);
+      ata_write_lba(ata, req.lba, 1);
       outb(ata->base + CMD_REG_OFF, ATA_CMD_READ_PIO_EXT);
    }
    LL_enqueue(&ata->requests, &req);
    PROC_block_on(&ata->blocked, 1);
 
    /* Read block data */
-   if (!(inb(ata->base + STATUS_REG_OFF) & ATA_SR_DRQ)) {
+   if (!ata_check_data(ata)) {
       klog(KLOG_LEVEL_WARN, "ata read failed");
       return -1;
    }
@@ -176,7 +190,7 @@ int ata_read_block(struct BlockDev *dev, uint64_t blk_num, void *dst)
    /* Initiate next read */
    next = LL_head(&ata->requests);
    if (next) {
-      ata_write_lda(ata, next->lda);
+      ata_write_lba(ata, next->lba, 1);
       outb(ata->base + CMD_REG_OFF, ATA_CMD_READ_PIO_EXT);
    }
    return 0;
@@ -202,7 +216,7 @@ int ata_probe(struct PCIDriver *driver)
 
    outb(ata->base + DRIVE_REG_OFF, ATA_SELECT_MASTER);
    ata_400ns_delay(ata);
-   ata_write_lda(ata, 0);
+   ata_write_lba(ata, 0, 1);
    outb(ata->base + CMD_REG_OFF, ATA_CMD_IDENTIFY);
 
    if (!inb(ata->base + STATUS_REG_OFF)) {
@@ -218,7 +232,7 @@ int ata_probe(struct PCIDriver *driver)
    ata_read(ata, iden);
 
    if (!(iden[83] & (1<<10))) {
-      klog(KLOG_LEVEL_WARN, "ata uses unsupported 28-bit LDA");
+      klog(KLOG_LEVEL_WARN, "ata uses unsupported 28-bit LBA");
       return -1;
    }
 
