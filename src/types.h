@@ -9,6 +9,7 @@
 
 typedef unsigned long size_t;
 typedef unsigned long offset_t;
+typedef unsigned long sect_t;
 
 #define MAX_MMAP_ENTRIES 32
 #define MAX_KERNEL_SECTIONS 32

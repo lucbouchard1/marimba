@@ -157,7 +157,7 @@ static void ata_write_lba(struct ATADevice *ata, uint64_t lba, uint16_t sectorco
    outb(ata->base + LBA_HIGH_OFF, (lba >> 16) & 0xff);
 }
 
-int ata_read_block(struct BlockDev *dev, uint64_t blk_num, void *dst)
+int ata_read_block(struct BlockDev *dev, sect_t blk_num, void *dst)
 {
    struct ATADevice *ata = container_of(dev, struct ATADevice, dev);
    struct ATARequest req, *next;
