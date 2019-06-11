@@ -15,7 +15,9 @@ void dump_block(struct BlockDev *blk, sect_t block)
       return;
    }
 
+   klog(KLOG_LEVEL_WARN, "doing second read");
    blk->read_block(blk, block, buff);
+   klog(KLOG_LEVEL_WARN, "done doing second read");
 
    for (i = 0; i < blk->blk_size; i++) {
       printk("%x ", buff[i]);
@@ -26,7 +28,7 @@ void dump_block(struct BlockDev *blk, sect_t block)
 
 void filesystem_init(void *arg)
 {
-   struct BlockDev *blk;
+   struct BlockDev *blk, *part;
    struct MasterBootRecord mbr;
 
    blk = BLK_open("ata");
@@ -35,10 +37,20 @@ void filesystem_init(void *arg)
       return;
    }
 
-   //dump_block(blk, 0);
-
+   klog(KLOG_LEVEL_WARN, "doing first read");
    blk->read_block(blk, 0, &mbr);
+   klog(KLOG_LEVEL_WARN, "done doing first read");
    FILE_process_mbr(blk, &mbr);
+
+   part = BLK_open("ata_1");
+   if (!part) {
+      klog(KLOG_LEVEL_WARN, "failed to create block device");
+      return;
+   }
+
+   klog(KLOG_LEVEL_WARN, "dumping block");
+
+   dump_block(part, 0);
 
    while (1)
       yield();

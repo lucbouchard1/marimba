@@ -14,17 +14,57 @@ static struct Files {
    .chars = LINKED_LIST_INIT(files.blocks, struct CharDev, cdev_list)
 };
 
-void FILE_process_mbr(struct BlockDev *dev, struct MasterBootRecord *mbr)
-{
-   int i;
+struct PartBlockDev {
+   struct BlockDev dev;
+   struct BlockDev *phys_dev;
+   sect_t sect_start;
+};
 
-   printk("Boot Signature: %x\n", mbr->boot_sig);
+int part_read_block(struct BlockDev *dev, sect_t blk_num, void *dst)
+{
+   struct PartBlockDev *part = (struct PartBlockDev *)dev;
+   return part->phys_dev->read_block(part->phys_dev,
+         blk_num + part->sect_start, dst);
+}
+
+int FILE_process_mbr(struct BlockDev *dev, struct MasterBootRecord *mbr)
+{
+   struct PartBlockDev *new;
+   int i, name;
+
+   if (mbr->boot_sig != 0xaa55) {
+      klog(KLOG_LEVEL_WARN, "%s device does not have valid MBR signature", dev->name);
+      return -1;
+   }
 
    for (i = 0; i < 4; i++) {
-      printk("Partition %d:\n", i);
-      printk("Start LBA: %x\n", mbr->parts[i].start_lba);
-      printk("Num Sectors: %x\n", mbr->parts[i].num_sectors);
+      if (!mbr->parts[i].start_lba)
+         continue;
+
+      new = kmalloc(sizeof(struct PartBlockDev));
+      if (!new)
+         return -1;
+      new->phys_dev = dev;
+      new->sect_start = mbr->parts[i].start_lba;
+      new->dev.blk_size = dev->blk_size;
+      new->dev.total_len = mbr->parts[i].num_sectors * dev->blk_size;
+      new->dev.type = mbr->parts[i].partition_type;
+      new->dev.read_block = &part_read_block;
+      new->dev.name = kmalloc(20);
+      if (!new->dev.name) {
+         kfree(new);
+         return -1;
+      }
+      name = strlen(dev->name);
+      strcpy(new->dev.name, dev->name);
+      new->dev.name[name] = '_';
+      new->dev.name[name+1] = '1' + i;
+      new->dev.name[name+2] = 0;
+      klog(KLOG_LEVEL_INFO, "partition %s detected", new->dev.name);
+      BLK_register(&new->dev);
    }
+
+   return 0;
 }
 
 void FILE_cdev_init(struct CharDev *cdev, struct FileOps *fops)

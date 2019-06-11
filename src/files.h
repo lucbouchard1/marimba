@@ -28,7 +28,7 @@ struct BlockDev {
    int (*read_block)(struct BlockDev *dev, sect_t blk_num, void *dst);
    size_t blk_size;
    size_t total_len;
-   const char *name;
+   char *name;
    enum BlockDevType type;
    uint8_t fs_type;
    struct ListHeader bdev_list;
@@ -70,7 +70,7 @@ struct MasterBootRecord {
    uint16_t boot_sig;
 } __attribute__((packed));
 
-void FILE_process_mbr(struct BlockDev *dev, struct MasterBootRecord *mbr);
+int FILE_process_mbr(struct BlockDev *dev, struct MasterBootRecord *mbr);
 void FILE_cdev_init(struct CharDev *cdev, struct FileOps *fops);
 int FILE_register_cdev(struct CharDev *cdev, const char *name);
 int BLK_register(struct BlockDev *bdev);
