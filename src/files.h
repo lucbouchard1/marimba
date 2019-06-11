@@ -51,6 +51,26 @@ struct INode {
    struct ListHeader inode_list;
 };
 
+struct PartitionRecord {
+   uint8_t status;
+   uint8_t first_chs_h;
+   uint8_t first_chs_sh;
+   uint8_t first_chs_sl;
+   uint8_t partition_type;
+   uint8_t last_chs_h;
+   uint8_t last_chs_sh;
+   uint8_t last_chs_sl;
+   uint32_t start_lba;
+   uint32_t num_sectors;
+} __attribute__((packed));
+
+struct MasterBootRecord {
+   uint8_t bootstrap_code[446];
+   struct PartitionRecord parts[4];
+   uint16_t boot_sig;
+} __attribute__((packed));
+
+void FILE_process_mbr(struct BlockDev *dev, struct MasterBootRecord *mbr);
 void FILE_cdev_init(struct CharDev *cdev, struct FileOps *fops);
 int FILE_register_cdev(struct CharDev *cdev, const char *name);
 int BLK_register(struct BlockDev *bdev);

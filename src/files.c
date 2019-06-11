@@ -14,6 +14,19 @@ static struct Files {
    .chars = LINKED_LIST_INIT(files.blocks, struct CharDev, cdev_list)
 };
 
+void FILE_process_mbr(struct BlockDev *dev, struct MasterBootRecord *mbr)
+{
+   int i;
+
+   printk("Boot Signature: %x\n", mbr->boot_sig);
+
+   for (i = 0; i < 4; i++) {
+      printk("Partition %d:\n", i);
+      printk("Start LBA: %x\n", mbr->parts[i].start_lba);
+      printk("Num Sectors: %x\n", mbr->parts[i].num_sectors);
+   }
+}
+
 void FILE_cdev_init(struct CharDev *cdev, struct FileOps *fops)
 {
    memset(cdev, 0, sizeof(struct CharDev));

@@ -27,6 +27,7 @@ void dump_block(struct BlockDev *blk, sect_t block)
 void filesystem_init(void *arg)
 {
    struct BlockDev *blk;
+   struct MasterBootRecord mbr;
 
    blk = BLK_open("ata");
    if (!blk) {
@@ -34,7 +35,10 @@ void filesystem_init(void *arg)
       return;
    }
 
-   dump_block(blk, 0);
+   //dump_block(blk, 0);
+
+   blk->read_block(blk, 0, &mbr);
+   FILE_process_mbr(blk, &mbr);
 
    while (1)
       yield();
