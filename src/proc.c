@@ -189,8 +189,12 @@ error:
 
 void PROC_run()
 {
-   if (PROC_queue_empty(&proc_state.ready_queue))
-      return;
-   proc_state.sleep_curr = 1;
-   yield();
+   IRQ_disable();
+   while (!PROC_queue_empty(&proc_state.ready_queue)) {
+      proc_state.sleep_curr = 1;
+      IRQ_enable();
+      yield();
+      IRQ_disable();
+   }
+   IRQ_enable();
 }

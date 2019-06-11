@@ -150,8 +150,7 @@ void IRQ_generic_isr(uint32_t irq, uint32_t err, uint64_t *ctx_stack)
          PROC_save_context(curr_proc, ctx_stack);
       PROC_load_context(next_proc, ctx_stack);
       curr_proc = next_proc;
-      /* Interrupts are disabled when a context shift is requested */
-      /* Re-enable here */
+      /* Interrupts are disabled when a context shift is requested, re-enable here */
       IRQ_enable();
    }
 
