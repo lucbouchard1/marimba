@@ -36,6 +36,8 @@ int PROC_queue_empty(struct ProcessQueue *queue);
 void PROC_unblock_all(struct ProcessQueue *queue);
 void PROC_block_on(struct ProcessQueue *queue, int enable_ints);
 void PROC_unblock_head(struct ProcessQueue *queue);
+void PROC_queue_dump(struct ProcessQueue *queue);
+void PROC_ready_dump();
 
 #if ARCH == x86_64
 #include "arch/x86_64/proc.h"

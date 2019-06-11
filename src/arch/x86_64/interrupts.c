@@ -145,14 +145,15 @@ void IRQ_generic_isr(uint32_t irq, uint32_t err, uint64_t *ctx_stack)
    if (irq >= PIC_MASTER_REMAP_BASE && irq <= (PIC_MASTER_REMAP_BASE + 0x2F))
       PIC_sendEOI(irq - PIC_MASTER_REMAP_BASE);
 
-   IRQ_disable();
    if (curr_proc != next_proc) {
       if (curr_proc)
          PROC_save_context(curr_proc, ctx_stack);
       PROC_load_context(next_proc, ctx_stack);
       curr_proc = next_proc;
+      /* Interrupts are disabled when a context shift is requested */
+      /* Re-enable here */
+      IRQ_enable();
    }
-   IRQ_enable();
 
    if (irq != SYSCALL_TRAP_NUMBER)
       atomic_sub(&irq_semaphore, 1);

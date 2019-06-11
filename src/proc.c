@@ -42,6 +42,22 @@ int PROC_queue_empty(struct ProcessQueue *queue)
    return LL_empty(&queue->list);
 }
 
+void PROC_queue_dump(struct ProcessQueue *queue)
+{
+   struct Process *curr;
+
+   LL_for_each(&queue->list, curr) {
+      printk("  %p %s rip: %lx\n", curr, curr->name, curr->rip);
+   }
+   printk("\n");
+}
+
+void PROC_ready_dump()
+{
+   printk("Ready Queue:\n");
+   PROC_queue_dump(&proc_state.ready_queue);
+}
+
 /**
  * Block the current process on the passed queue.
  * @queue: pointer to the queue to block on.
@@ -106,12 +122,15 @@ void PROC_reschedule()
 
    if (PROC_queue_empty(&proc_state.ready_queue)) {
       next_proc = &main_proc;
+      proc_state.sleep_curr = 1;
    } else {
       next_proc = proc_queue_dequeue(&proc_state.ready_queue);
       proc_state.sleep_curr = 0;
    }
 
-   IRQ_enable();
+   /* Interrupts will be reenabled when context shift occurs in interrupt handler */
+   if (curr_proc == next_proc)
+      IRQ_enable();
 }
 
 void PROC_yield()
