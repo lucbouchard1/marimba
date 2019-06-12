@@ -1,5 +1,5 @@
 #include "list.h"
-#include "files.h"
+#include "fs.h"
 #include "string.h"
 #include "klog.h"
 #include "kmalloc.h"
@@ -27,7 +27,7 @@ int part_read_block(struct BlockDev *dev, sect_t blk_num, void *dst)
          blk_num + part->sect_start, dst);
 }
 
-int FILE_process_mbr(struct BlockDev *dev, struct MasterBootRecord *mbr)
+int FS_process_mbr(struct BlockDev *dev, struct MasterBootRecord *mbr)
 {
    struct PartBlockDev *new;
    int i, name;
@@ -67,13 +67,13 @@ int FILE_process_mbr(struct BlockDev *dev, struct MasterBootRecord *mbr)
    return 0;
 }
 
-void FILE_cdev_init(struct CharDev *cdev, struct FileOps *fops)
+void FS_cdev_init(struct CharDev *cdev, struct FileOps *fops)
 {
    memset(cdev, 0, sizeof(struct CharDev));
    cdev->fops = fops;
 }
 
-int FILE_register_cdev(struct CharDev *cdev, const char *name)
+int FS_register_cdev(struct CharDev *cdev, const char *name)
 {
    struct INode *new;
 
@@ -109,7 +109,7 @@ struct BlockDev *BLK_open(const char *name)
    return NULL;
 }
 
-struct OFile *FILE_open(const char *name, uint32_t flags)
+struct OFile *FS_open(const char *name, uint32_t flags)
 {
    struct INode *curr;
    struct OFile *new = NULL;
@@ -132,17 +132,17 @@ struct OFile *FILE_open(const char *name, uint32_t flags)
    return new;
 }
 
-void FILE_read(struct OFile *file, char *buff, size_t len)
+void FS_read(struct OFile *file, char *buff, size_t len)
 {
    file->fops->read(file, buff, len);
 }
 
-void FILE_close(struct OFile *file)
+void FS_close(struct OFile *file)
 {
    file->fops->close(file);
 }
 
-void FILE_dump_files()
+void FS_dump_files()
 {
    struct INode *curr;
 
@@ -155,7 +155,7 @@ void FILE_dump_files()
  */
 extern int ps2_init_module();
 extern int ata_init_module();
-void FILE_temp_dev_init()
+void FS_temp_dev_init()
 {
    ps2_init_module();
    klog(KLOG_LEVEL_INFO, "ps2 device driver registered");

@@ -1,5 +1,5 @@
-#ifndef __FILES_H__
-#define __FILES_H__
+#ifndef __FS_H__
+#define __FS_H__
 
 #include "types.h"
 #include "list.h"
@@ -70,14 +70,14 @@ struct MasterBootRecord {
    uint16_t boot_sig;
 } __attribute__((packed));
 
-int FILE_process_mbr(struct BlockDev *dev, struct MasterBootRecord *mbr);
-void FILE_cdev_init(struct CharDev *cdev, struct FileOps *fops);
-int FILE_register_cdev(struct CharDev *cdev, const char *name);
+int FS_process_mbr(struct BlockDev *dev, struct MasterBootRecord *mbr);
+void FS_cdev_init(struct CharDev *cdev, struct FileOps *fops);
+int FS_register_cdev(struct CharDev *cdev, const char *name);
 int BLK_register(struct BlockDev *bdev);
 struct BlockDev *BLK_open(const char *name);
-struct OFile *FILE_open(const char *name, uint32_t flags);
-void FILE_read(struct OFile *file, char *buff, size_t len);
-void FILE_close(struct OFile *file);
-void FILE_temp_dev_init();
+struct OFile *FS_open(const char *name, uint32_t flags);
+void FS_read(struct OFile *file, char *buff, size_t len);
+void FS_close(struct OFile *file);
+void FS_temp_dev_init();
 
 #endif

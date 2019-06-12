@@ -1,4 +1,3 @@
-#include "../files.h"
 #include "../syscall.h"
 #include "../proc.h"
 #include "../printk.h"

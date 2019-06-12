@@ -3,7 +3,7 @@
 #include "../../klog.h"
 #include "../../kmalloc.h"
 #include "../../proc.h"
-#include "../../files.h"
+#include "../../fs.h"
 #include "../../interrupts.h"
 #include "keyboard.h"
 
@@ -298,7 +298,7 @@ int ps2_close(struct OFile *fd)
 
 int ps2_init_module()
 {
-   FILE_cdev_init(&ps2_dev.cdev, &ps2_fops);
-   FILE_register_cdev(&ps2_dev.cdev, "ps2");
+   FS_cdev_init(&ps2_dev.cdev, &ps2_fops);
+   FS_register_cdev(&ps2_dev.cdev, "ps2");
    return 0;
 }

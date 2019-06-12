@@ -1,4 +1,4 @@
-#include "../files.h"
+#include "../fs.h"
 #include "../syscall.h"
 #include "../klog.h"
 #include "../kmalloc.h"
@@ -91,7 +91,7 @@ void filesystem_init(void *arg)
    }
 
    blk->read_block(blk, 0, &mbr);
-   FILE_process_mbr(blk, &mbr);
+   FS_process_mbr(blk, &mbr);
 
    part = BLK_open("ata_1");
    if (!part) {

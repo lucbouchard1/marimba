@@ -12,7 +12,7 @@
 #include "syscall.h"
 #include "proc.h"
 #include "procs/procs.h"
-#include "files.h"
+#include "fs.h"
 #include "drivers/keyboard/keyboard.h"
 #include "drivers/serial/serial.h"
 
@@ -36,7 +36,7 @@ void kmain(uint32_t mb_magic, uint32_t mb_addr)
       panic();
 
    PCI_enum();
-   FILE_temp_dev_init();
+   FS_temp_dev_init();
 
    klog(KLOG_LEVEL_INFO, "creating threads");
 

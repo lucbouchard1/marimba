@@ -2,7 +2,7 @@
 #define __PCI_H__
 
 #include "../types.h"
-#include "../files.h"
+#include "../fs.h"
 
 #define PCI_CONFIG_ADDR 0xCF8
 #define PCI_CONFIG_DATA 0xCFC
