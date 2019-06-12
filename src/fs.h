@@ -51,6 +51,10 @@ struct INode {
    struct ListHeader inode_list;
 };
 
+struct SuperBlock {
+   struct INode *root_inode;
+};
+
 struct PartitionRecord {
    uint8_t status;
    uint8_t first_chs_h;
@@ -78,6 +82,7 @@ struct BlockDev *BLK_open(const char *name);
 struct OFile *FS_open(const char *name, uint32_t flags);
 void FS_read(struct OFile *file, char *buff, size_t len);
 void FS_close(struct OFile *file);
+int FS_register_fs(struct BlockDev *blk);
 void FS_temp_dev_init();
 
 #endif
