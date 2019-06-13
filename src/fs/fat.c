@@ -1,5 +1,18 @@
 #include "../klog.h"
+#include "../kmalloc.h"
 #include "fat.h"
+
+struct FAT {
+   int sects_per_clust, rsvd_sects, root_clust;
+   int num_fats, tot_sects, sects_per_fat;
+   int sect_size, num_fat_entires;
+   uint32_t *table;
+};
+
+struct FATDir {
+   struct FAT *fat;
+   int start_clust;
+};
 
 struct FAT_BPB {
    uint8_t jmp[3];
@@ -64,11 +77,30 @@ struct FATLongDirEnt {
    uint16_t last[2];
 } __attribute__((packed));
 
+uint32_t fat32_next_cluster(struct FAT *fat, int clust)
+{
+   int i;
+
+   for (i = 0; i < fat->num_fat_entires; i++) {
+      if (fat->table[i] == clust)
+         return fat->table[i+1];
+   }
+
+   return 0;
+}
+
+int fat32_parse_dir(struct INode *new, int dir_clust)
+{
+
+}
+
 int FS_register_fat32(struct PartBlockDev *part)
 {
    struct FAT32 fat;
-   // int sects_per_clust, rsvd_sects, root_clust;
-   // int num_fats, tot_sects, sects_per_fat;
+   struct INode *root_inode;
+   struct FATDir *root;
+   struct FAT *tbl;
+   int i;
 
    klog(KLOG_LEVEL_WARN, "FAT 32!");
 
@@ -85,12 +117,40 @@ int FS_register_fat32(struct PartBlockDev *part)
       return -1;
    }
 
-   // rsvd_sects = fat.bpb.reserved_sectors;
-   // num_fats = fat.bpb.num_fats;
-   // sects_per_clust = fat.bpb.sectors_per_cluster;
-   // tot_sects = fat.bpb.tot_sectors ? fat.bpb.tot_sectors : fat.sectors_per_fat;
-   // sects_per_fat = fat.bpb.sectors_per_fat ? fat.bpb.sectors_per_fat : fat.sectors_per_fat;
-   // root_clust = fat.root_cluster_number;
+   tbl = kmalloc(sizeof(struct FAT));
+   if (!tbl)
+      return -1;
+
+   tbl->rsvd_sects = fat.bpb.reserved_sectors;
+   tbl->num_fats = fat.bpb.num_fats;
+   tbl->sects_per_clust = fat.bpb.sectors_per_cluster;
+   tbl->tot_sects = fat.bpb.tot_sectors ? fat.bpb.tot_sectors : fat.sectors_per_fat;
+   tbl->sects_per_fat = fat.bpb.sectors_per_fat ? fat.bpb.sectors_per_fat : fat.sectors_per_fat;
+   tbl->root_clust = fat.root_cluster_number;
+   tbl->sect_size = part->dev.blk_size;
+   tbl->num_fat_entires = (tbl->num_fats * tbl->sects_per_fat * tbl->sect_size)/4;
+
+   tbl->table = kmalloc(tbl->num_fats * tbl->sects_per_fat * tbl->sect_size);
+   if (!tbl->table)
+      return -1;
+
+   for (i = 0; i < tbl->num_fats*tbl->sects_per_fat; i++) {
+      part->dev.read_block(&part->dev, i + (1 + tbl->rsvd_sects),
+            &tbl->table[i * tbl->sect_size]);
+   }
+
+   root_inode = kmalloc(sizeof(struct INode));
+   if (!root_inode)
+      return -1;
+
+   root = kmalloc(sizeof(struct FATDir));
+   if (!root) {
+      kfree(root_inode);
+      return -1;
+   }
+   root->fat = tbl;
+   root->start_clust = tbl->root_clust;
+   root_inode->private = root;
 
    return 0;
 }

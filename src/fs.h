@@ -49,6 +49,7 @@ struct INode {
    };
    const char *name;
    struct ListHeader inode_list;
+   void *private;
 };
 
 struct SuperBlock {
