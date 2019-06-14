@@ -58,8 +58,8 @@ int FS_process_mbr(struct BlockDev *dev, struct MasterBootRecord *mbr)
       new->dev.name[name] = '_';
       new->dev.name[name+1] = '1' + i;
       new->dev.name[name+2] = 0;
-      klog(KLOG_LEVEL_INFO, "partition %s with fs type 0x%X detected",
-            new->dev.name, new->dev.fs_type);
+      klog(KLOG_LEVEL_INFO, "partition %s with fs type 0x%X at sector 0x%lX with size %ld detected",
+            new->dev.name, new->dev.fs_type, new->sect_start, new->dev.total_len);
       BLK_register(&new->dev);
    }
 

@@ -3,10 +3,12 @@
 #include "fat.h"
 
 struct FAT {
+   struct PartBlockDev *part;
    int sects_per_clust, rsvd_sects, root_clust;
    int num_fats, tot_sects, sects_per_fat;
    int sect_size, num_fat_entires;
    uint32_t *table;
+   uint8_t *clust_buff;
 };
 
 struct FATDir {
@@ -89,16 +91,48 @@ uint32_t fat32_next_cluster(struct FAT *fat, int clust)
    return 0;
 }
 
-int fat32_parse_dir(struct INode *new, int dir_clust)
+int fat32_read_clust(struct FAT *fat, int clust)
 {
+   int i, start_sect;
 
+   start_sect = fat->rsvd_sects + (fat->num_fats * fat->sects_per_fat) +
+         (clust - 2)*fat->sects_per_clust;
+
+   for (i = start_sect; i < fat->sects_per_clust; i++) {
+      fat->part->dev.read_block(&fat->part->dev, i,
+            &fat->clust_buff[i*fat->sect_size]);
+   }
+
+   return 0;
+}
+
+int fat32_parse_dir(struct FAT *fat, struct INode *new, int dir_clust)
+{
+   struct FATDir *dir;
+   struct FATLongDirEnt *ent;
+   uint8_t *buff;
+
+
+   dir = kmalloc(sizeof(struct FATDir));
+   if (!dir)
+      return -1;
+   dir->start_clust = dir_clust;
+
+   fat32_read_clust(fat, dir_clust);
+
+   buff = fat->clust_buff;
+   ent = (struct FATLongDirEnt *)buff;
+
+   ((char *)ent->first)[8] = 0;
+   printk("%s", (char *)ent->first);
+
+   return 0;
 }
 
 int FS_register_fat32(struct PartBlockDev *part)
 {
    struct FAT32 fat;
    struct INode *root_inode;
-   struct FATDir *root;
    struct FAT *tbl;
    int i;
 
@@ -124,7 +158,7 @@ int FS_register_fat32(struct PartBlockDev *part)
    tbl->rsvd_sects = fat.bpb.reserved_sectors;
    tbl->num_fats = fat.bpb.num_fats;
    tbl->sects_per_clust = fat.bpb.sectors_per_cluster;
-   tbl->tot_sects = fat.bpb.tot_sectors ? fat.bpb.tot_sectors : fat.sectors_per_fat;
+   tbl->tot_sects = fat.bpb.tot_sectors ? fat.bpb.tot_sectors : fat.bpb.large_sector_count;
    tbl->sects_per_fat = fat.bpb.sectors_per_fat ? fat.bpb.sectors_per_fat : fat.sectors_per_fat;
    tbl->root_clust = fat.root_cluster_number;
    tbl->sect_size = part->dev.blk_size;
@@ -134,23 +168,20 @@ int FS_register_fat32(struct PartBlockDev *part)
    if (!tbl->table)
       return -1;
 
+   tbl->clust_buff = kmalloc(tbl->sects_per_clust * tbl->sect_size);
+   if (!tbl->clust_buff)
+      return -1;
+
    for (i = 0; i < tbl->num_fats*tbl->sects_per_fat; i++) {
       part->dev.read_block(&part->dev, i + (1 + tbl->rsvd_sects),
-            &tbl->table[i * tbl->sect_size]);
+            &tbl->table[i * (tbl->sect_size/4)]);
    }
 
    root_inode = kmalloc(sizeof(struct INode));
    if (!root_inode)
       return -1;
 
-   root = kmalloc(sizeof(struct FATDir));
-   if (!root) {
-      kfree(root_inode);
-      return -1;
-   }
-   root->fat = tbl;
-   root->start_clust = tbl->root_clust;
-   root_inode->private = root;
+   //fat32_parse_dir(tbl, root_inode, tbl->root_clust);
 
    return 0;
 }
